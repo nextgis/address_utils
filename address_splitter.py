@@ -12,9 +12,9 @@ from address import Address
 
 
 class SplitingStrategy(object):
-    """Стратегия -- способ разбиения строки адреса на составные части.
-    Класс предоставляет способ оценки качества разбиения (функция
-    get_score).
+    """ Strategy is a way to split address string into address components.
+    The class provides a method to estimate quality of the partition
+    (see get_score).
     """
     def __init__(self,
                  address,
@@ -155,9 +155,9 @@ class SplitingStrategy(object):
         return address
 
     def _get_space_penalty(self):
-        """Penalty for spaces betweeen address parts.
+        """Penalty for spaces between address parts.
 
-        Resurns count of symbols between the first
+        Returns count of symbols between the first
         and the last parts of the address
         """
         sum_cols = self._score_matrix.sum(axis=0)
@@ -168,13 +168,21 @@ class SplitingStrategy(object):
         return right - left
 
     def get_score(self):
-        """Return weight of strategy. (Small weight is better)
+        """Return weight of strategy. (Small weight is better then big)
 
-        Требования:
-            Разные части адреса не должны пересекаться между собой
-                (за каждое пересечение назначается штраф).
-            Должно быть мало неиспользуемых символов в адресе
-                (за каждый неиспользумый символ назначается штраф).
+        We assume that good splitting should follow the assumptions:
+            Intersection of the address components isn't allowed
+                (we add a penalty for every component intersection)
+            Splitting should minimize number of unused characters
+                (characters that are not belong to a address component).
+                We add a penalty for every unused character.
+            Address should have compact location in the address string.
+                A string may contain some addition information except address.
+                We assume that address have to be located in one part of the
+                string. So we add a penalty for spread address partition (the
+                spread is measured as difference between indexes of the last and
+                first characters of address parts).
+
         """
 
         sum_cols = self._score_matrix.sum(axis=0)
@@ -396,41 +404,40 @@ class AddressSplitter(object):
 
         return best
 
-    def get_parsed_address(self, address):
-        """Parse address string and return an Address object.
+    def get_parsed_address(self, addr):
+        """Parse addr string and return an Address object.
 
-        :param address:    Address string
+        :param addr:    address string
 
         :returns:    Parsed address
-        :rtype:      geocoder.algorithms.address.address.Address
+        :rtype:      Address object
         """
         # check the cache:
-        if self._address == address and self._parsed_address:
+        if self._address == addr and self._parsed_address:
             return self._parsed_address
 
-        s = self.get_best_strategy(address)
+        s = self.get_best_strategy(addr)
         self._parsed_address = s.get_parsed_address()
 
-        self._address = address
+        self._address = addr
 
         return self._parsed_address
 
-    def _drop_part(self, address, positions):
+    def _drop_part(self, addr, positions):
         """Change part of address: replace it by spaces
         """
-        return address[:positions[0]] + \
+        return addr[:positions[0]] + \
             u' ' * (positions[1] - positions[0]) \
-            + address[positions[1]:]
+               + addr[positions[1]:]
 
-    def drop_index(self, address):
-        s = self.get_best_strategy(address)
+    def drop_index(self, addr):
+        s = self.get_best_strategy(addr)
         if s.index_pos:
-            return self._drop_part(address, s.index_pos)
+            return self._drop_part(addr, s.index_pos)
         else:
-            return address
+            return addr
 
-    def _drop_parts(self, address):
-        addr = address
+    def _drop_parts(self, addr):
         s = self.get_best_strategy(addr)
         addr = self.drop_index(addr)
         if s.country_pos:
@@ -458,8 +465,6 @@ if __name__ == '__main__':
     Import the necessary class to your project and use it in the project.
     '''
 
-    from progressbar import ProgressBar, Bar, Counter, ETA
-
     datafile = sys.argv[1]
     delimiter = ","
     if len(sys.argv) >= 3:
@@ -470,23 +475,15 @@ if __name__ == '__main__':
         country_list_file=path + 'countries.csv',
         region_list_file=path + 'regions.csv',
         subregion_list_file=path + 'subregions.csv',
-        # city_list_file=path + 'cities_big.csv',
-        city_list_file=path + 'cities.csv',
+        city_list_file=path + 'cities_big.csv',
         street_list_file=path + 'streets.csv',
         house_list_file=path + 'houses.csv'
     )
 
     num_lines = sum(1 for line in open(datafile))
-    pbar = ProgressBar(
-        widgets=[
-            Bar('=', '[', ']'), ' ', Counter(),
-            " of " + str(num_lines), ' ', ETA()]
-    ).start()
-    pbar.maxval = num_lines
 
     with open(datafile) as data:
         for address in data:
-            pbar.update(pbar.currval + 1)
             line_text = address.decode('utf-8')
             address = address.decode('utf-8')
             parced_address = splitter.get_parsed_address(address)
@@ -512,4 +509,3 @@ if __name__ == '__main__':
                                      parced_address.street,
                                      parced_address.house])
             print result.encode('utf-8')
-    pbar.finish()

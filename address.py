@@ -173,7 +173,7 @@ class Address(object):
         self._poi = value
 
     def mask_address_parts(self, used_parts):
-        """Delete from address unused address parts. Return the modifed copy.
+        """Delete from address unused address parts. Return the modified copy.
 
         :param used_parts:   A list of parts, that are used, the other parts
                              will be masked
