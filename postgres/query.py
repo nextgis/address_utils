@@ -8,7 +8,7 @@ from collections import namedtuple
 import psycopg2
 
 
-AddressRecord = namedtuple('AddressRecord', 'aoguid, parentguid, formalname, offname, shortname')
+AddressRecord = namedtuple('AddressRecord', 'aoguid, parentguid, aolevel, formalname, offname, shortname')
 
 
 
@@ -57,7 +57,7 @@ def find_address_for_name(cursor, name, aoguid_only=False):
         """
     else:
         sql = """
-            SELECT aoguid, parentguid, formalname, offname, shortname
+            SELECT aoguid, parentguid, aolevel, formalname, offname, shortname
             FROM addrobj
             WHERE
                 ts_name @@ to_tsquery('ru', %s)
@@ -74,18 +74,38 @@ def find_address_for_name(cursor, name, aoguid_only=False):
     return result
 
 
+def find_in_text(cursor, text):
+    sql = """
+    SELECT addrobj_id FROM names
+    WHERE
+        ts_query_name @@ to_tsvector('ru', %s)
+    """
+    cursor.execute(sql, (text, ))
+    
+    result = [row[0] for row in cursor.fetchall()]
+    
+    return result
+    
+
+
 def main():
     
     connect_string = sys.argv[1]
-
-    street = 'Октябрьская'
-    city = "Казань"
-
     conn = psycopg2.connect(connect_string)
     c = conn.cursor()
 
-    for addr in find_address_for_name(c, street, aoguid_only=False):
-        print addr
+
+    text = """
+    Где найти кота? На улице Баумана в городе Казани есть памятник и даже не один.
+    """
+
+    for id in find_in_text(c, text):
+        sql = "SELECT aoid, offname, formalname FROM addrobj WHERE aoid = %s"
+        c.execute(sql, (id, ))
+        for x in c.fetchone():
+            print x,
+        print 
+        
 
     conn.close()
 
