@@ -10,7 +10,7 @@ class Address(object):
     @staticmethod
     def address_parts_list():
         return ['country', 'region', 'subregion', 'index',
-                'settlement', 'street', 'house', 'poi']
+                'settlement', 'subsettlement', 'street', 'house', 'poi']
 
     def __init__(self,
                  raw_address=None,
@@ -19,6 +19,7 @@ class Address(object):
                  region=None,
                  subregion=None,
                  settlement=None,
+                 subsettlement=None,
                  street=None,
                  house=None,
                  poi=None):
@@ -41,6 +42,9 @@ class Address(object):
 
         :param settlement:      Name of the settlement
         :type settlement:       unicode
+        
+        :param subsettlement:      Name of the subsettlement
+        :type settlement:       unicode
 
         :param street:          Street name
         :type street:           unicode
@@ -59,6 +63,7 @@ class Address(object):
         self._region = region
         self._subregion = subregion
         self._settlement = settlement
+        self._subsettlement = subsettlement
         self._street = street
         self._house = house
         self._poi = poi
@@ -70,6 +75,7 @@ class Address(object):
              self.region,
              self.subregion,
              self.settlement,
+             self.subsettlement,
              self.street,
              self.house,
              self.poi]
@@ -88,6 +94,8 @@ class Address(object):
         if self.subregion != other.subregion:
             return False
         if self.settlement != other.settlement:
+            return False
+        if self.subsettlement != other.subsettlement:
             return False
         if self.street != other.street:
             return False
@@ -147,6 +155,14 @@ class Address(object):
     @settlement.setter
     def settlement(self, value):
         self._settlement = value
+        
+    @property
+    def subsettlement(self):
+        return self._subsettlement
+
+    @subsettlement.setter
+    def subsettlement(self, value):
+        self._subsettlement = value
 
     @property
     def street(self):

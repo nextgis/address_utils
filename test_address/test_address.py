@@ -16,6 +16,7 @@ class TestAddress(unittest.TestCase):
         region = u'Московская область'
         subregion = u'Подольский район'
         settlement = u'Подольск'
+        subsettlement = u'район Зеленый'
         street = u'Малая'
         house = u'234'
         poi = u'Станция Канавка'
@@ -26,6 +27,7 @@ class TestAddress(unittest.TestCase):
             region=region,
             subregion=subregion,
             settlement=settlement,
+            subsettlement=subsettlement,
             street=street,
             house=house,
             poi=poi
@@ -33,12 +35,12 @@ class TestAddress(unittest.TestCase):
 
         expected = ','.join([
             index, country, region, subregion,
-            settlement, street, house, poi
+            settlement, subsettlement, street, house, poi
         ])
         got = ','.join([
             address.index, address.country,
             address.region, address.subregion,
-            address.settlement, address.street,
+            address.settlement, address.subsettlement, address.street,
             address.house, address.poi
         ])
         self.assertEqual(got, expected)
@@ -53,13 +55,15 @@ class TestAddress(unittest.TestCase):
         address.region = region
         address.subregion = subregion
         address.settlement = settlement
+        address.subsettlement = subsettlement
         address.street = street
         address.house = house
         address.poi = poi
         got = ','.join([
             address.index, address.country,
             address.region, address.subregion,
-            address.settlement, address.street,
+            address.settlement, address.subsettlement, 
+            address.street,
             address.house, address.poi
         ])
 
@@ -71,6 +75,7 @@ class TestAddress(unittest.TestCase):
         region = u'Московская область'
         subregion = u'Подольский район'
         settlement = u'Подольск'
+        subsettlement = u'район Зеленый'
         street = u'Малая'
         house = u'234'
         poi = u'Ресторан Рыбный'
@@ -81,6 +86,7 @@ class TestAddress(unittest.TestCase):
             region=region,
             subregion=subregion,
             settlement=settlement,
+            subsettlement=subsettlement,
             street=street,
             house=house,
             poi=poi
@@ -89,7 +95,7 @@ class TestAddress(unittest.TestCase):
         # Index is deleted from the representation
         expected = ', '.join([
             country, region, subregion,
-            settlement, street, house, poi
+            settlement, subsettlement, street, house, poi
         ])
         self.assertEqual(unicode(address), expected)
 
@@ -110,6 +116,7 @@ class TestAddress(unittest.TestCase):
         region = u'Московская область'
         subregion = u'Подольский район'
         settlement = u'Подольск'
+        subsettlement = u'район Зеленый'
         street = u'Малая'
         house = u'234'
         poi = u'Станция Канавка'
@@ -122,6 +129,7 @@ class TestAddress(unittest.TestCase):
             region=region,
             subregion=subregion,
             settlement=settlement,
+            subsettlement=subsettlement,
             street=street,
             house=house,
             poi=poi
