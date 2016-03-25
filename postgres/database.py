@@ -1,20 +1,30 @@
 
-import sys
 import csv
 
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-from models import Base
-from models import Name, Addrobj
+
+from models import Base, DBSession
+
+# TODO: fix connection string
+connection_string = 'postgresql://dima:@localhost:5432/address'
+engine = create_engine(connection_string)
+
+Base.metadata.bind = engine
+DBSession.configure(bind=engine)
 
 
+def _initdb(csvfilename, drop_db=False):
+    session = DBSession()
 
-def _import(session):
+    from models import Name, Addrobj
 
-   
-    reader = csv.reader(open('ADDROBJ.csv'))
-    next(reader, None)  # skip the headers
+    # if drop_db:
+    #    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+
+    reader = csv.reader(open(csvfilename))
+    # next(reader, None)  # skip the headers
     
     i = 0
     for line in reader:
@@ -79,7 +89,7 @@ def _import(session):
         
         names = session.query(Name).filter(Name.name.in_([formalname, offname]))
         names = names.all()
-        
+
         place = Addrobj(
             actstatus=actstatus,
             aoguid=aoguid,
@@ -91,14 +101,11 @@ def _import(session):
             citycode=citycode,
             code=code,
             currstatus=currstatus,
-            enddate=enddate,
             formalname=formalname,
             ifnsfl=ifnsfl,
             ifnsul=ifnsul,
             nextid=nextid,
             offname=offname,
-            okato=okato,
-            oktmo=oktmo,
             operstatus=operstatus,
             parentguid=parentguid,
             placecode=placecode,
@@ -107,39 +114,25 @@ def _import(session):
             previd=previd,
             regioncode=regioncode,
             shortname=shortname,
-            startdate=startdate,
             streetcode=streetcode,
             terrifnsfl=terrifnsfl,
             terrifnsul=terrifnsul,
-            updatedate=updatedate,
             ctarcode=ctarcode,
             extrcode=extrcode,
             sextcode=sextcode,
             livestatus=livestatus,
-            normdoc=normdoc,
             names=names)
             
         session.add(place)
         session.commit()
         
         i += 1
-        if i % 100 == 0:
+        if i % 10000 == 0:
             print i
         
     
-def main():
-    connection_string = sys.argv[1]
-    # connection_string = 'postgresql://dima:@localhost:5432/address'
-    engine = create_engine(connection_string)
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    
-    DBSession = sessionmaker(bind=engine)
-    session = DBSession()
- 
-    _import(session)
-    
-    
-
 if __name__ == "__main__":
-    main()
+    import sys
+
+    filename = sys.argv[1]
+    _initdb(filename)
