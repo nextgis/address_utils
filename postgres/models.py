@@ -1,4 +1,5 @@
 from sqlalchemy import Table, Column, ForeignKey, Integer, Text
+from sqlalchemy import text
 from sqlalchemy.orm import relationship, sessionmaker
 
 from sqlalchemy import types
@@ -69,9 +70,9 @@ class Addrobj(Base):
 
     names = relationship('Name', secondary=placenames_table, backref='names')
 
-    def get_parents(self):
+    def get_admin_order(self):
         dbsession = DBSession()
-        qs = '''
+        qs = u'''
             WITH RECURSIVE child_to_parents AS (
               SELECT addrobj.*
                   FROM addrobj
@@ -83,13 +84,12 @@ class Addrobj(Base):
                     AND addrobj.currstatus = 0
             )
             SELECT
-                child_to_parents.aoid,
-                child_to_parents.aolevel
+                child_to_parents.*
               FROM child_to_parents
               ORDER BY aolevel
         ''' % (self.aoid,)
 
-        parents = dbsession.query(Addrobj).from_statement(qs).all()
+        parents = dbsession.query(Addrobj).from_statement(text(qs)).all()
 
         return parents
 
@@ -110,7 +110,6 @@ class Name(Base):
         WHERE
             name_tsquery @@ to_tsvector('ru', '%s')
         """ % (self.__tablename__, text)
-        print sql
 
         names = dbsession.query(Name).from_statement(sql).all()
 
