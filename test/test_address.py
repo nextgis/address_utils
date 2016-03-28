@@ -120,7 +120,7 @@ class TestAddress(unittest.TestCase):
         street = u'Малая'
         house = u'234'
         poi = u'Станция Канавка'
-        raw_address = 'sdlkjsldjflsdfjksdjffedsjdnv'
+        raw_address = u'sdlkjsldjflsdfjksdjffedsjdnv'
 
         address = Address(
             raw_address=raw_address,
