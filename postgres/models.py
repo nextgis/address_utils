@@ -103,14 +103,15 @@ class Name(Base):
 
     addrobjs = relationship('Addrobj', secondary=placenames_table, backref='addrobjs')
 
-    def find_in_text(self, text):
+    @staticmethod
+    def find_in_text(searched_text):
         dbsession = DBSession()
         sql = """
-        SELECT * FROM %s
+        SELECT * FROM name
         WHERE
             name_tsquery @@ to_tsvector('ru', '%s')
-        """ % (self.__tablename__, text)
-
-        names = dbsession.query(Name).from_statement(sql).all()
+        """ % (searched_text, )
+        names = dbsession.query(Name).from_statement(text(sql)).all()
 
         return names
+
