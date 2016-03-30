@@ -10,16 +10,17 @@ class Address(object):
     @staticmethod
     def address_parts_list():
         return ['country', 'region', 'subregion', 'index',
-                'settlement', 'subsettlement', 'street', 'house', 'poi']
+                'settlement', 'city', 'subcity', 'street', 'house', 'poi']
 
     def __init__(self,
                  raw_address=None,
                  index=None,
                  country=None,
                  region=None,
+                 city=None,
                  subregion=None,
                  settlement=None,
-                 subsettlement=None,
+                 subcity=None,
                  street=None,
                  house=None,
                  poi=None):
@@ -34,25 +35,28 @@ class Address(object):
         :param country:     country
         :type country:      unicode
 
-        :param region:     region
+        :param region:     region (FIAS level: 1)
         :type region:      unicode
 
-        :param subregion:     subregion
+        :param subregion:     subregion (FIAS level: 3)
         :type subregion:      unicode
 
-        :param settlement:      Name of the settlement
+        :param city:      Name of the city (FIAS level: 4)
+        :type city:       unicode
+
+        :param settlement:      Name of the settlement (FIAS level: 6)
         :type settlement:       unicode
         
-        :param subsettlement:      Name of the subsettlement
+        :param subcity:      Name of the subsettlement (FIAS level: 5)
         :type settlement:       unicode
 
-        :param street:          Street name
+        :param street:          Street name (FIAS level: 7)
         :type street:           unicode
 
         :param house:           House number
         :type house:            unicode
 
-        :param poi:         Point Of Interes
+        :param poi:         Point Of Interest
         :type poi:          unucode
         """
 
@@ -62,8 +66,9 @@ class Address(object):
         self._country = country
         self._region = region
         self._subregion = subregion
+        self._city = city
+        self._subcity = subcity
         self._settlement = settlement
-        self._subsettlement = subsettlement
         self._street = street
         self._house = house
         self._poi = poi
@@ -74,8 +79,9 @@ class Address(object):
             [self.country,
              self.region,
              self.subregion,
+             self.city,
+             self.subcity,
              self.settlement,
-             self.subsettlement,
              self.street,
              self.house,
              self.poi]
@@ -95,7 +101,9 @@ class Address(object):
             return False
         if self.settlement != other.settlement:
             return False
-        if self.subsettlement != other.subsettlement:
+        if self.city != other.city:
+            return False
+        if self.subcity != other.subcity:
             return False
         if self.street != other.street:
             return False
@@ -155,14 +163,22 @@ class Address(object):
     @settlement.setter
     def settlement(self, value):
         self._settlement = value
-        
-    @property
-    def subsettlement(self):
-        return self._subsettlement
 
-    @subsettlement.setter
-    def subsettlement(self, value):
-        self._subsettlement = value
+    @property
+    def city(self):
+        return self._city
+
+    @city.setter
+    def city(self, value):
+        self._city = value
+
+    @property
+    def subcity(self):
+        return self._subcity
+
+    @subcity.setter
+    def subcity(self, value):
+        self._subcity = value
 
     @property
     def street(self):

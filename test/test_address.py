@@ -15,8 +15,8 @@ class TestAddress(unittest.TestCase):
         country = u'Российская Федерация'
         region = u'Московская область'
         subregion = u'Подольский район'
-        settlement = u'Подольск'
-        subsettlement = u'район Зеленый'
+        city = u'Подольск'
+        subcity = u'район Зеленый'
         street = u'Малая'
         house = u'234'
         poi = u'Станция Канавка'
@@ -26,8 +26,8 @@ class TestAddress(unittest.TestCase):
             country=country,
             region=region,
             subregion=subregion,
-            settlement=settlement,
-            subsettlement=subsettlement,
+            city=city,
+            subcity=subcity,
             street=street,
             house=house,
             poi=poi
@@ -35,12 +35,12 @@ class TestAddress(unittest.TestCase):
 
         expected = ','.join([
             index, country, region, subregion,
-            settlement, subsettlement, street, house, poi
+            city, subcity, street, house, poi
         ])
         got = ','.join([
             address.index, address.country,
             address.region, address.subregion,
-            address.settlement, address.subsettlement, address.street,
+            address.city, address.subcity, address.street,
             address.house, address.poi
         ])
         self.assertEqual(got, expected)
@@ -54,15 +54,15 @@ class TestAddress(unittest.TestCase):
         address.country = country
         address.region = region
         address.subregion = subregion
-        address.settlement = settlement
-        address.subsettlement = subsettlement
+        address.city = city
+        address.subcity = subcity
         address.street = street
         address.house = house
         address.poi = poi
         got = ','.join([
             address.index, address.country,
             address.region, address.subregion,
-            address.settlement, address.subsettlement, 
+            address.city, address.subcity,
             address.street,
             address.house, address.poi
         ])
@@ -74,8 +74,8 @@ class TestAddress(unittest.TestCase):
         country = u'Российская Федерация'
         region = u'Московская область'
         subregion = u'Подольский район'
-        settlement = u'Подольск'
-        subsettlement = u'район Зеленый'
+        city = u'Подольск'
+        subcity = u'район Зеленый'
         street = u'Малая'
         house = u'234'
         poi = u'Ресторан Рыбный'
@@ -85,8 +85,8 @@ class TestAddress(unittest.TestCase):
             country=country,
             region=region,
             subregion=subregion,
-            settlement=settlement,
-            subsettlement=subsettlement,
+            city=city,
+            subcity=subcity,
             street=street,
             house=house,
             poi=poi
@@ -95,7 +95,7 @@ class TestAddress(unittest.TestCase):
         # Index is deleted from the representation
         expected = ', '.join([
             country, region, subregion,
-            settlement, subsettlement, street, house, poi
+            city, subcity, street, house, poi
         ])
         self.assertEqual(unicode(address), expected)
 
@@ -115,8 +115,8 @@ class TestAddress(unittest.TestCase):
         country = u'Российская Федерация'
         region = u'Московская область'
         subregion = u'Подольский район'
-        settlement = u'Подольск'
-        subsettlement = u'район Зеленый'
+        city = u'Подольск'
+        subcity = u'район Зеленый'
         street = u'Малая'
         house = u'234'
         poi = u'Станция Канавка'
@@ -128,8 +128,8 @@ class TestAddress(unittest.TestCase):
             country=country,
             region=region,
             subregion=subregion,
-            settlement=settlement,
-            subsettlement=subsettlement,
+            city=city,
+            subcity=subcity,
             street=street,
             house=house,
             poi=poi
@@ -141,10 +141,10 @@ class TestAddress(unittest.TestCase):
                            index=index, country=country)
         self.assertEqual(new, expected)
 
-        used_parts = ['region', 'settlement']
+        used_parts = ['region', 'city']
         new = address.mask_address_parts(used_parts)
         expected = Address(raw_address=raw_address,
-                           region=region, settlement=settlement)
+                           region=region, city=city)
         # import ipdb; ipdb.set_trace()
         self.assertEqual(new, expected)
 
