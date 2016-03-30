@@ -10,6 +10,8 @@ from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.declarative import declarative_base
 
 
+from address import Address
+
 DBSession = sessionmaker()
 Base = declarative_base()
 
@@ -89,9 +91,32 @@ class Addrobj(Base):
               ORDER BY aolevel
         ''' % (self.aoid,)
 
-        parents = dbsession.query(Addrobj).from_statement(text(qs)).all()
+        adm_order = dbsession.query(Addrobj).from_statement(text(qs)).all()
 
-        return parents
+        return adm_order
+
+    def get_address_hierarhy(self):
+        adm_order = self.get_admin_order()
+
+        address = Address()
+        for adm in adm_order:
+            name = "%s %s" % (adm.shortname, adm.formalname)
+            if adm.aolevel == 1:
+                address.region = name
+            elif adm.aolevel == 3:
+                address.subregion = name
+            elif adm.aolevel == 4:
+                address.city = name
+            elif adm.aolevel == 5:
+                address.subcity = name
+            elif adm.aolevel in [6, 90]:
+                address.settlement = name
+            elif adm.aolevel in [7, 91]:
+                address.street = name
+            else:
+                raise ValueError("Unknown address level: %s" %(adm.aolevel, ))
+
+        return address
 
 
 class Name(Base):
