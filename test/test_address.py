@@ -110,6 +110,20 @@ class TestAddress(unittest.TestCase):
             addr2.__dict__[key] = 'qwerty' + unicode(val)
             self.assertEqual(addr1, addr2)
 
+    def test_subaddress_of(self):
+        addr1 = Address()
+        addr2 = Address()
+        self.assertTrue(addr1.subaddress_of(addr2))
+
+        # import ipdb; ipdb.set_trace()
+        for key, val in addr1.__dict__.iteritems():
+            if key == '_raw_address':
+                continue
+            addr1.__dict__[key] = 'qwerty' + unicode(val)
+            self.assertTrue(addr2.subaddress_of(addr1))
+            self.assertFalse(addr1.subaddress_of(addr2))
+            addr2.__dict__[key] = 'qwerty' + unicode(val)
+
     def test_mask_address_parts(self):
         index = u'123456'
         country = u'Российская Федерация'

@@ -116,6 +116,25 @@ class Address(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def subaddress_of(self, other):
+        """Return true if the addres is a subaddress of the other address
+        """
+        if self.raw_address != other.raw_address:
+            # The addresses are results of analysis for different address strings
+            return False
+
+        for prop_name in self.address_parts_list():
+            self_prop = self.__getattribute__(prop_name)
+            other_prop = other.__getattribute__(prop_name)
+            if (other_prop is None) and (self_prop is not None):
+                return False
+            elif self_prop is None and other_prop is not None:
+                pass    # It's Ok
+            elif self_prop != other_prop:
+                return False
+
+        return True
+
     @property
     def raw_address(self):
         return self._raw_address
