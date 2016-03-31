@@ -1,3 +1,4 @@
+# encoding: utf-8
 
 import sys
 
@@ -173,22 +174,24 @@ class TestModels(unittest.TestCase):
 
         node = session.query(Addrobj).filter(Addrobj.aoid=='1').one()
         adm =  node.get_address_hierarhy()
-        expected = Address(region='Oblast Name11')
+        expected = Address(region=u'Oblast Name11')
         self.assertEquals(adm, expected)
 
         node = session.query(Addrobj).filter(Addrobj.aoid=='2').one()
         adm =  node.get_address_hierarhy()
-        expected = Address(region='Oblast Name11', subregion='Raion Name21')
+        expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21')
         self.assertEquals(adm, expected)
 
         node = session.query(Addrobj).filter(Addrobj.aoid=='6').one()
         adm =  node.get_address_hierarhy()
-        expected = Address(region='Oblast Name11', subregion='Raion Name21', settlement='Der. Name61')
+        expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21',
+                           settlement=u'Der. Name61')
         self.assertEquals(adm, expected)
 
         node = session.query(Addrobj).filter(Addrobj.aoid=='9').one()
         adm =  node.get_address_hierarhy()
-        expected = Address(region='Oblast Name11', city='Gorod Name31', subcity='Kvartal Name81', street='Street Name91')
+        expected = Address(region=u'Oblast Name11', city=u'Gorod Name31',
+                           subcity=u'Kvartal Name81', street=u'Street Name91')
         self.assertEquals(adm, expected)
 
         parts = ['region', 'city', 'subcity', 'street']
@@ -196,9 +199,6 @@ class TestModels(unittest.TestCase):
             used_parts = list(set(parts) - set([p]))
             cropped_addr = expected.mask_address_parts(used_parts)
             self.assertNotEqual(adm, cropped_addr)
-
-
-
 
     def test_name_find_in_text(self):
         # TODO: check quotes
@@ -210,9 +210,18 @@ class TestModels(unittest.TestCase):
         self.assertTrue('Name31' in names)
         self.assertTrue('Name92' in names)
 
-    # def test_name_hierarhies_for_text(self):
-    #     text = "Is the node with label ''name92'' a subnode of the node with ''name31'' ?"
-    #     print Name.hierarhies_for_text(text)
+    def test_name_hierarchies_for_text(self):
+        text = u"Is the node with label ''name92'' a subnode of the node with ''name31'' ?"
+
+        addresses = Name.hierarchies_for_text(text)
+        expected = [
+            Address(raw_address=text,
+                    region=u'Oblast Name11',
+                    city=u'Gorod Name31',
+                    subcity=u'Kvartal Name81',
+                    street=u'Street Name91')
+        ]
+        self.assertEquals(expected, addresses)
 
 
 if __name__ == '__main__':
