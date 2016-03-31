@@ -76,7 +76,7 @@ class TestModels(unittest.TestCase):
         session.add(name2)
         session.add(node)
 
-        name1 = Name(name='Name31', name_tsquery='Name31')
+        name1 = Name(name='Название31', name_tsquery='Название31')
         name2 = Name(name='Name32', name_tsquery='Name32')
         node = Addrobj(aoid='3', aolevel=4, aoguid='3', parentguid='1', currstatus=0,
                        shortname='Gorod', formalname=name1.name, names=[name1, name2])
@@ -135,8 +135,8 @@ class TestModels(unittest.TestCase):
 
         ######################################
 
-        name1 = Name(name='Name91', name_tsquery='Name91')
-        name2 = Name(name='Name92', name_tsquery='Name92')
+        name1 = Name(name='Название91', name_tsquery='Название91')
+        name2 = Name(name='Название92', name_tsquery='Название92')
         node = Addrobj(aoid='9', aolevel=7, aoguid='9', parentguid='8', currstatus=0,
                        shortname='Street', formalname=name1.name, names=[name1, name2])
 
@@ -146,6 +146,7 @@ class TestModels(unittest.TestCase):
         ######################################
 
         session.commit()
+        session.close()
 
     @classmethod
     def tearDownClass(cls):
@@ -169,6 +170,8 @@ class TestModels(unittest.TestCase):
         self.assertEquals(y.aoid, '1')
         self.assertEquals(parents, [])
 
+        session.close()
+
     def test_addrobj_get_address_hierarhy(self):
         session = DBSession()
 
@@ -190,8 +193,8 @@ class TestModels(unittest.TestCase):
 
         node = session.query(Addrobj).filter(Addrobj.aoid=='9').one()
         adm =  node.get_address_hierarhy()
-        expected = Address(region=u'Oblast Name11', city=u'Gorod Name31',
-                           subcity=u'Kvartal Name81', street=u'Street Name91')
+        expected = Address(region=u'Oblast Name11', city=u'Gorod Название31',
+                           subcity=u'Kvartal Name81', street=u'Street Название91')
         self.assertEquals(adm, expected)
 
         parts = ['region', 'city', 'subcity', 'street']
@@ -200,26 +203,28 @@ class TestModels(unittest.TestCase):
             cropped_addr = expected.mask_address_parts(used_parts)
             self.assertNotEqual(adm, cropped_addr)
 
+        session.close()
+
     def test_name_find_in_text(self):
         # TODO: check quotes
-        text = "Is the node with label ''name92'' a subnode of the node with ''name31'' ?"
+        text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
         names = Name.find_in_text(text)
 
         names = [n.name for n in names]
         self.assertEquals(len(names), 2)
-        self.assertTrue('Name31' in names)
-        self.assertTrue('Name92' in names)
+        self.assertTrue(u'Название31' in names)
+        self.assertTrue(u'Название92' in names)
 
     def test_name_hierarchies_for_text(self):
-        text = u"Is the node with label ''name92'' a subnode of the node with ''name31'' ?"
+        text = u"Is the node with label ''Название92'' a subnode of the node with ''name31'' ?"
 
         addresses = Name.hierarchies_for_text(text)
         expected = [
             Address(raw_address=text,
                     region=u'Oblast Name11',
-                    city=u'Gorod Name31',
+                    city=u'Gorod Название31',
                     subcity=u'Kvartal Name81',
-                    street=u'Street Name91')
+                    street=u'Street Название91')
         ]
         self.assertEquals(expected, addresses)
 

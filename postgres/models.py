@@ -13,6 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from address import Address
 
 DBSession = sessionmaker()
+dbsession = DBSession()
 Base = declarative_base()
 
 
@@ -73,7 +74,7 @@ class Addrobj(Base):
     names = relationship('Name', secondary=placenames_table, backref='names')
 
     def get_admin_order(self):
-        dbsession = DBSession()
+        # dbsession = DBSession()
         qs = u'''
             WITH RECURSIVE child_to_parents AS (
               SELECT addrobj.*
@@ -92,6 +93,7 @@ class Addrobj(Base):
         ''' % (self.aoid,)
 
         adm_order = dbsession.query(Addrobj).from_statement(text(qs)).all()
+        # dbsession.close()
 
         return adm_order
 
@@ -130,7 +132,6 @@ class Name(Base):
 
     @staticmethod
     def find_in_text(searched_text):
-        dbsession = DBSession()
         sql = """
         SELECT * FROM name
         WHERE

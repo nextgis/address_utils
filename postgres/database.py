@@ -1,3 +1,4 @@
+# encoding: utf-8
 
 import csv
 
@@ -135,4 +136,14 @@ if __name__ == "__main__":
     import sys
 
     filename = sys.argv[1]
-    _initdb(filename)
+    # _initdb(filename)
+    text = u"""Посреди предложения встречаются два
+    наименования город Казань
+    и его часть улица Баумана, остальные слова -
+    для заполнения"""
+
+    from models import Name
+    # import ipdb; ipdb.set_trace()
+    addresses = Name.hierarchies_for_text(text)
+    for addr in addresses:
+        print unicode(addr).encode('utf-8')
