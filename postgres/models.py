@@ -1,3 +1,7 @@
+# coding=utf-8
+
+from collections import Counter
+
 from sqlalchemy import Table, Column, ForeignKey, Integer, Text
 from sqlalchemy import text
 from sqlalchemy.orm import relationship, sessionmaker
@@ -97,10 +101,10 @@ class Addrobj(Base):
 
         return adm_order
 
-    def get_address_hierarhy(self):
+    def get_address_hierarhy(self, raw_address=None):
         adm_order = self.get_admin_order()
 
-        address = Address()
+        address = Address(raw_address=raw_address)
         for adm in adm_order:
             name = "%s %s" % (adm.shortname, adm.formalname)
             if adm.aolevel == 1:
@@ -141,37 +145,71 @@ class Name(Base):
 
         return names
 
-    @staticmethod
-    def hierarchies_for_text(searched_text):
-        """
-        Find all address names that are matched in searched_text,
-        then create list of Addresses that corresponds to the names.
+    # @staticmethod
+    # def hierarchies_for_text(searched_text):
+    #     """
+    #     Find all address names that are matched in searched_text,
+    #     then create list of Addresses that corresponds to the names.
+    #
+    #     Return list of addresses (Address objects):
+    #         * addresses are unique (the list doesn't contain duplicates);
+    #         * addresses are 'gready': every address takes as much address names as possible.
+    #     """
+    #     names = Name.find_in_text(searched_text)
+    #
+    #     addresses = []
+    #     for name in names:
+    #         for addr in name.addrobjs:
+    #             addresses.append(addr.get_address_hierarhy())
+    #
+    #     # Remove subaddresses:
+    #     result = []
+    #     size = len(addresses)
+    #     for i in range(size):
+    #         subaddress = False
+    #         for j in range(i + 1, size):
+    #             if addresses[i].subaddress_of(addresses[j]):
+    #                 subaddress = True
+    #                 break
+    #         if not subaddress:
+    #             addresses[i].raw_address = searched_text
+    #             result.append(addresses[i])
+    #
+    #     return result
 
-        Return list of addresses (Address objects):
-            * addresses are unique (the list doesn't contain duplicates);
-            * addresses are 'gready': every address takes as much address names as possible.
-        """
+    @staticmethod
+    def extract_addresses(searched_text):
         names = Name.find_in_text(searched_text)
 
-        addresses = []
-        for name in names:
-            for addr in name.addrobjs:
-                addresses.append(addr.get_address_hierarhy())
+        # Remove possible duplicates
+        name_groups = {n: [] for n in names}
+        for n in names:
+            addresses = [addr.get_address_hierarhy(raw_address=searched_text) for addr in n.addrobjs]
+            for addr in addresses:
+                if addr not in name_groups[n]:
+                    name_groups[n].append(addr)
 
-        # Remove subaddresses:
-        result = []
-        size = len(addresses)
-        for i in range(size):
-            subaddress = False
-            for j in range(i + 1, size):
-                if addresses[i].subaddress_of(addresses[j]):
-                    subaddress = True
-                    break
-            if not subaddress:
-                addresses[i].raw_address = searched_text
-                result.append(addresses[i])
+        # name_groups = {n: [addr.get_address_hierarhy(raw_address=searched_text) for addr in n.addrobjs] for n in names}
 
-        return result
+        # Находим веса для адресов:
+        # Чем больше названий (Name) задействовано в адресе, тем лучше
+        # Считаем сколько под-адресов входит в каждый адрес, возвращаем
+        # адрес с наибольшим числом под-адресов
+
+        addr_counter = Counter()
+        for n in name_groups:
+            for addr in name_groups[n]:
+                addr_counter[addr] += 1
+
+        for name1 in name_groups:
+            for name2 in name_groups:
+                if name1 != name2:
+                    for addr1 in name_groups[name1]:
+                        for addr2 in name_groups[name2]:
+                            if addr2.subaddress_of(addr1):
+                                addr_counter[addr1] += 1
+
+        return addr_counter
 
 
 

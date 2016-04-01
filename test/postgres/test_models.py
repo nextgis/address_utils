@@ -1,8 +1,10 @@
-# encoding: utf-8
+# coding=utf-8
 
 import sys
 
 import unittest
+
+from collections import Counter
 
 from sqlalchemy import create_engine
 
@@ -215,19 +217,160 @@ class TestModels(unittest.TestCase):
         self.assertTrue(u'Название31' in names)
         self.assertTrue(u'Название92' in names)
 
-    def test_name_hierarchies_for_text(self):
-        text = u"Is the node with label ''Название92'' a subnode of the node with ''name31'' ?"
+    # def test_name_hierarchies_for_text(self):
+    #     text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
+    #
+    #     addresses = Name.hierarchies_for_text(text)
+    #     expected = [
+    #         Address(raw_address=text,
+    #                 region=u'Oblast Name11',
+    #                 city=u'Gorod Название31',
+    #                 subcity=u'Kvartal Name81',
+    #                 street=u'Street Название91')
+    #     ]
+    #     self.assertEquals(expected, addresses)
 
-        addresses = Name.hierarchies_for_text(text)
+    def test_name_extract_addresses(self):
+        text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
+        addresses = Name.extract_addresses(text)
+        self.assertEqual(len(addresses), 2)
+
+        expected = Address(raw_address=text,
+                        region=u'Oblast Name11',
+                        city=u'Gorod Название31',
+                        subcity=u'Kvartal Name81',
+                        street=u'Street Название91'
+        )
+
+        # import ipdb; ipdb.set_trace()
+        addr, count = addresses.most_common(1)[0]
+        self.assertEqual(expected, addr)
+        self.assertEqual(count, 2)
+        del addresses[addr]
+
+        expected = Address(raw_address=text,
+                        region=u'Oblast Name11',
+                        city=u'Gorod Название31'
+        )
+        addr, count = addresses.most_common(1)[0]
+        self.assertEqual(expected, addr)
+        self.assertEqual(count, 1)
+
+        text = u"""Список названий: Название91 Name81 Name71 Name11, встречающихся в тексте"""
+        addresses = Name.extract_addresses(text)
+        # N1: (N1): 1
+        # N7: (N7, N3, N1): 2
+        # N8: (N8, N3, N1):2
+        # N9: (N9, N8, N3, N1): 3
+        self.assertEqual(len(addresses), 4)
+
+        expected = Address(raw_address=text,
+                           region=u'Oblast Name11',
+                           city=u'Gorod Название31',
+                           subcity=u'Kvartal Name81',
+                           street=u'Street Название91'
+                           )
+
+        addr, count = addresses.most_common(1)[0]
+        self.assertEqual(expected, addr)
+        self.assertEqual(count, 3)
+        del addresses[addr]
+
+        common = addresses.most_common(2)
         expected = [
             Address(raw_address=text,
                     region=u'Oblast Name11',
                     city=u'Gorod Название31',
-                    subcity=u'Kvartal Name81',
-                    street=u'Street Название91')
+                    subcity=u'Raion Name71',
+            ),
+            Address(raw_address=text,
+                    region=u'Oblast Name11',
+                    city=u'Gorod Название31',
+                    subcity=u'Kvartal Name81'
+            ),
         ]
-        self.assertEquals(expected, addresses)
 
+        got = [c for (a, c) in common]
+        self.assertItemsEqual(got, [2, 2])
+
+        got = [a for (a, c) in common]
+        for addr in got:
+            assert addr in expected
+            del addresses[addr]
+
+        expected = Address(raw_address=text,
+                           region=u'Oblast Name11')
+
+        addr, count = addresses.most_common(1)[0]
+        self.assertEqual(expected, addr)
+        self.assertEqual(count, 1)
+
+        # Add new row to the DB, duplicate names
+        session = DBSession()
+        names = session.query(Name).filter(Name.name.in_(['Name81', 'Name82']))
+        names = names.all()
+        node = Addrobj(aoid='8.dup', aolevel=7, aoguid='8.dup', parentguid='6', currstatus=0,
+                       shortname='Street', formalname=names[0].name, names=names)
+
+        session.add(node)
+        session.commit()
+        session.close()
+
+        text = u"""Список названий: Название91 Name81 Name71 Name11, встречающихся в тексте"""
+        addresses = Name.extract_addresses(text)
+        # N1: (N1): 1
+        # N7: (N7, N3, N1): 2
+        # N8: (N8, N3, N1):2, (N6, N6, N2, N1): 2
+        # N9: (N9, N8, N3, N1): 3
+        self.assertEqual(len(addresses), 5)
+
+        expected = Address(raw_address=text,
+                           region=u'Oblast Name11',
+                           city=u'Gorod Название31',
+                           subcity=u'Kvartal Name81',
+                           street=u'Street Название91'
+                           )
+
+        # import ipdb; ipdb.set_trace()
+        addr, count = addresses.most_common(1)[0]
+        self.assertEqual(expected, addr)
+        self.assertEqual(count, 3)
+        del addresses[addr]
+
+        common = addresses.most_common(3)
+        expected = [
+            Address(raw_address=text,
+                    region=u'Oblast Name11',
+                    city=u'Gorod Название31',
+                    subcity=u'Raion Name71',
+            ),
+            Address(raw_address=text,
+                    region=u'Oblast Name11',
+                    city=u'Gorod Название31',
+                    subcity=u'Kvartal Name81'
+            ),
+            Address(raw_address=text,
+                    region=u'Oblast Name11',
+                    subregion=u'Raion Name21',
+                    settlement=u'Der. Name61',
+                    street=u'Street Name81'
+            ),
+        ]
+
+        got = [c for (a, c) in common]
+        self.assertItemsEqual(got, [2, 2, 2])
+
+        got = [a for (a, c) in common]
+        for addr in got:
+            assert addr in expected
+            del addresses[addr]
+
+        expected = Address(raw_address=text,
+                           region=u'Oblast Name11')
+
+        addr, count = addresses.most_common(1)[0]
+        self.assertEqual(expected, addr)
+        self.assertEqual(count, 1)
 
 if __name__ == '__main__':
     suite = unittest.makeSuite(TestModels, 'test')
