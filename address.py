@@ -75,18 +75,18 @@ class Address(object):
 
     def __unicode__(self):
         parts = [
-            p for p in
-            [self.country,
-             self.region,
-             self.subregion,
-             self.city,
-             self.subcity,
-             self.settlement,
-             self.street,
-             self.house,
-             self.poi]
+            "%s: %s" % (part, p)  for (part, p) in
+            [('Country', self.country),
+             ('Region', self.region),
+             ('Subregion', self.subregion),
+             ('City', self.city),
+             ('Subcity', self.subcity),
+             ('Settlement', self.settlement),
+             ('Street', self.street),
+             ('House', self.house),
+             ('POI', self.poi)]
             if p]
-        return ', '.join(parts)
+        return '; '.join(parts)
 
     def __eq__(self, other):
         if self.raw_address != other.raw_address:

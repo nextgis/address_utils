@@ -93,10 +93,7 @@ class TestAddress(unittest.TestCase):
         )
 
         # Index is deleted from the representation
-        expected = ', '.join([
-            country, region, subregion,
-            city, subcity, street, house, poi
-        ])
+        expected = "Country: %s; Region: %s; Subregion: %s; City: %s; Subcity: %s; Street: %s; House: %s; POI: %s" % (country, region, subregion, city, subcity, street, house, poi)
         self.assertEqual(unicode(address), expected)
 
     def test_equal(self):
