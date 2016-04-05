@@ -10,15 +10,17 @@ class Address(object):
     @staticmethod
     def address_parts_list():
         return ['country', 'region', 'subregion', 'index',
-                'settlement', 'street', 'house', 'poi']
+                'settlement', 'city', 'subcity', 'street', 'house', 'poi']
 
     def __init__(self,
                  raw_address=None,
                  index=None,
                  country=None,
                  region=None,
+                 city=None,
                  subregion=None,
                  settlement=None,
+                 subcity=None,
                  street=None,
                  house=None,
                  poi=None):
@@ -33,22 +35,28 @@ class Address(object):
         :param country:     country
         :type country:      unicode
 
-        :param region:     region
+        :param region:     region (FIAS level: 1)
         :type region:      unicode
 
-        :param subregion:     subregion
+        :param subregion:     subregion (FIAS level: 3)
         :type subregion:      unicode
 
-        :param settlement:      Name of the settlement
+        :param city:      Name of the city (FIAS level: 4)
+        :type city:       unicode
+
+        :param settlement:      Name of the settlement (FIAS level: 6)
+        :type settlement:       unicode
+        
+        :param subcity:      Name of the subsettlement (FIAS level: 5)
         :type settlement:       unicode
 
-        :param street:          Street name
+        :param street:          Street name (FIAS level: 7)
         :type street:           unicode
 
         :param house:           House number
         :type house:            unicode
 
-        :param poi:         Point Of Interes
+        :param poi:         Point Of Interest
         :type poi:          unucode
         """
 
@@ -58,6 +66,8 @@ class Address(object):
         self._country = country
         self._region = region
         self._subregion = subregion
+        self._city = city
+        self._subcity = subcity
         self._settlement = settlement
         self._street = street
         self._house = house
@@ -65,16 +75,18 @@ class Address(object):
 
     def __unicode__(self):
         parts = [
-            p for p in
-            [self.country,
-             self.region,
-             self.subregion,
-             self.settlement,
-             self.street,
-             self.house,
-             self.poi]
+            "%s: %s" % (part, p)  for (part, p) in
+            [('Country', self.country),
+             ('Region', self.region),
+             ('Subregion', self.subregion),
+             ('City', self.city),
+             ('Subcity', self.subcity),
+             ('Settlement', self.settlement),
+             ('Street', self.street),
+             ('House', self.house),
+             ('POI', self.poi)]
             if p]
-        return ', '.join(parts)
+        return '; '.join(parts)
 
     def __eq__(self, other):
         if self.raw_address != other.raw_address:
@@ -89,6 +101,10 @@ class Address(object):
             return False
         if self.settlement != other.settlement:
             return False
+        if self.city != other.city:
+            return False
+        if self.subcity != other.subcity:
+            return False
         if self.street != other.street:
             return False
         if self.house != other.house:
@@ -99,6 +115,25 @@ class Address(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def subaddress_of(self, other):
+        """Return true if the addres is a subaddress of the other address
+        """
+        if self.raw_address != other.raw_address:
+            # The addresses are results of analysis for different address strings
+            return False
+
+        for prop_name in self.address_parts_list():
+            self_prop = self.__getattribute__(prop_name)
+            other_prop = other.__getattribute__(prop_name)
+            if (other_prop is None) and (self_prop is not None):
+                return False
+            elif self_prop is None and other_prop is not None:
+                pass    # It's Ok
+            elif self_prop != other_prop:
+                return False
+
+        return True
 
     @property
     def raw_address(self):
@@ -147,6 +182,22 @@ class Address(object):
     @settlement.setter
     def settlement(self, value):
         self._settlement = value
+
+    @property
+    def city(self):
+        return self._city
+
+    @city.setter
+    def city(self, value):
+        self._city = value
+
+    @property
+    def subcity(self):
+        return self._subcity
+
+    @subcity.setter
+    def subcity(self, value):
+        self._subcity = value
 
     @property
     def street(self):
