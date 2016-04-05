@@ -144,6 +144,6 @@ if __name__ == "__main__":
 
     from models import Name
     # import ipdb; ipdb.set_trace()
-    addresses = Name.hierarchies_for_text(text)
+    addresses = Name.extract_addresses(text)
     for addr in addresses:
-        print unicode(addr).encode('utf-8')
+        print addresses[addr], unicode(addr).encode('utf-8')
