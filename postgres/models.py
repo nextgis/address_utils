@@ -120,7 +120,7 @@ class Addrobj(Base):
             elif adm.aolevel in [7, 91]:
                 address.street = name
             else:
-                raise ValueError("Unknown address level: %s" %(adm.aolevel, ))
+                raise ValueError("Unknown address level: %s" % (adm.aolevel, ))
 
         return address
 
@@ -210,6 +210,3 @@ class Name(Base):
                                 addr_counter[addr1] += 1
 
         return addr_counter
-
-
-

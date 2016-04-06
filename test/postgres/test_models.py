@@ -17,7 +17,7 @@ from postgres.models import (
 
 from address import Address
 
-connection_string = 'postgresql://geocoder:@localhost:5432/geocoder'
+connection_string = 'postgresql://geocoder:@localhost:5432/test_addr'
 engine = create_engine(connection_string)
 
 Base.metadata.bind = engine
@@ -159,7 +159,7 @@ class TestModels(unittest.TestCase):
     def test_addrobj_get_parents(self):
         session = DBSession()
 
-        node = session.query(Addrobj).filter(Addrobj.aoid=='9').one()
+        node = session.query(Addrobj).filter(Addrobj.aoid == '9').one()
         parents = node.get_admin_order()
 
         y = parents.pop()
@@ -177,24 +177,24 @@ class TestModels(unittest.TestCase):
     def test_addrobj_get_address_hierarhy(self):
         session = DBSession()
 
-        node = session.query(Addrobj).filter(Addrobj.aoid=='1').one()
-        adm =  node.get_address_hierarhy()
+        node = session.query(Addrobj).filter(Addrobj.aoid == '1').one()
+        adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11')
         self.assertEquals(adm, expected)
 
-        node = session.query(Addrobj).filter(Addrobj.aoid=='2').one()
-        adm =  node.get_address_hierarhy()
+        node = session.query(Addrobj).filter(Addrobj.aoid == '2').one()
+        adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21')
         self.assertEquals(adm, expected)
 
-        node = session.query(Addrobj).filter(Addrobj.aoid=='6').one()
-        adm =  node.get_address_hierarhy()
+        node = session.query(Addrobj).filter(Addrobj.aoid == '6').one()
+        adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21',
                            settlement=u'Der. Name61')
         self.assertEquals(adm, expected)
 
-        node = session.query(Addrobj).filter(Addrobj.aoid=='9').one()
-        adm =  node.get_address_hierarhy()
+        node = session.query(Addrobj).filter(Addrobj.aoid == '9').one()
+        adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11', city=u'Gorod Название31',
                            subcity=u'Kvartal Name81', street=u'Street Название91')
         self.assertEquals(adm, expected)
@@ -235,11 +235,12 @@ class TestModels(unittest.TestCase):
         addresses = Name.extract_addresses(text)
         self.assertEqual(len(addresses), 2)
 
-        expected = Address(raw_address=text,
-                        region=u'Oblast Name11',
-                        city=u'Gorod Название31',
-                        subcity=u'Kvartal Name81',
-                        street=u'Street Название91'
+        expected = Address(
+            raw_address=text,
+            region=u'Oblast Name11',
+            city=u'Gorod Название31',
+            subcity=u'Kvartal Name81',
+            street=u'Street Название91'
         )
 
         # import ipdb; ipdb.set_trace()
@@ -248,9 +249,10 @@ class TestModels(unittest.TestCase):
         self.assertEqual(count, 2)
         del addresses[addr]
 
-        expected = Address(raw_address=text,
-                        region=u'Oblast Name11',
-                        city=u'Gorod Название31'
+        expected = Address(
+            raw_address=text,
+            region=u'Oblast Name11',
+            city=u'Gorod Название31'
         )
         addr, count = addresses.most_common(1)[0]
         self.assertEqual(expected, addr)
@@ -264,12 +266,13 @@ class TestModels(unittest.TestCase):
         # N9: (N9, N8, N3, N1): 3
         self.assertEqual(len(addresses), 4)
 
-        expected = Address(raw_address=text,
-                           region=u'Oblast Name11',
-                           city=u'Gorod Название31',
-                           subcity=u'Kvartal Name81',
-                           street=u'Street Название91'
-                           )
+        expected = Address(
+            raw_address=text,
+            region=u'Oblast Name11',
+            city=u'Gorod Название31',
+            subcity=u'Kvartal Name81',
+            street=u'Street Название91'
+        )
 
         addr, count = addresses.most_common(1)[0]
         self.assertEqual(expected, addr)
@@ -278,15 +281,17 @@ class TestModels(unittest.TestCase):
 
         common = addresses.most_common(2)
         expected = [
-            Address(raw_address=text,
-                    region=u'Oblast Name11',
-                    city=u'Gorod Название31',
-                    subcity=u'Raion Name71',
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Raion Name71',
             ),
-            Address(raw_address=text,
-                    region=u'Oblast Name11',
-                    city=u'Gorod Название31',
-                    subcity=u'Kvartal Name81'
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Kvartal Name81'
             ),
         ]
 
@@ -339,21 +344,24 @@ class TestModels(unittest.TestCase):
 
         common = addresses.most_common(3)
         expected = [
-            Address(raw_address=text,
-                    region=u'Oblast Name11',
-                    city=u'Gorod Название31',
-                    subcity=u'Raion Name71',
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Raion Name71',
             ),
-            Address(raw_address=text,
-                    region=u'Oblast Name11',
-                    city=u'Gorod Название31',
-                    subcity=u'Kvartal Name81'
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Kvartal Name81'
             ),
-            Address(raw_address=text,
-                    region=u'Oblast Name11',
-                    subregion=u'Raion Name21',
-                    settlement=u'Der. Name61',
-                    street=u'Street Name81'
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                subregion=u'Raion Name21',
+                settlement=u'Der. Name61',
+                street=u'Street Name81'
             ),
         ]
 
@@ -378,5 +386,3 @@ if __name__ == '__main__':
     result = runner.run(suite)
     if not result.wasSuccessful():
         sys.exit(1)
-
-
