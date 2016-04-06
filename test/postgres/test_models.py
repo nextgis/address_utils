@@ -17,7 +17,7 @@ from postgres.models import (
 
 from address import Address
 
-connection_string = 'postgresql://addr_user:@localhost:5432/test_addr'
+connection_string = 'postgresql://geocoder:@localhost:5432/geocoder'
 engine = create_engine(connection_string)
 
 Base.metadata.bind = engine

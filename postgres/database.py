@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from models import Base, DBSession
 
 # TODO: fix connection string
-connection_string = 'postgresql://dima:@localhost:5432/address'
+connection_string = 'postgresql://geocoder:@localhost:5432/geocoder'
 engine = create_engine(connection_string)
 
 Base.metadata.bind = engine
@@ -22,11 +22,11 @@ def _initdb(csvfilename, drop_db=False):
 
     # if drop_db:
     #    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    # Base.metadata.create_all(engine)
 
     reader = csv.reader(open(csvfilename))
     # next(reader, None)  # skip the headers
-    
+
     i = 0
     for line in reader:
         line = [s.replace("'", "''") for s in line]
@@ -68,7 +68,7 @@ def _initdb(csvfilename, drop_db=False):
             livestatus,
             normdoc
         ) = line
-        
+
         try:
             name = Name(
                 name=formalname,
@@ -87,7 +87,7 @@ def _initdb(csvfilename, drop_db=False):
             session.commit()
         except:
             session.rollback()
-        
+
         names = session.query(Name).filter(Name.name.in_([formalname, offname]))
         names = names.all()
 
@@ -123,20 +123,21 @@ def _initdb(csvfilename, drop_db=False):
             sextcode=sextcode,
             livestatus=livestatus,
             names=names)
-            
+
         session.add(place)
         session.commit()
-        
+
         i += 1
         if i % 10000 == 0:
             print i
-        
-    
+
+
 if __name__ == "__main__":
     import sys
 
     filename = sys.argv[1]
     # _initdb(filename)
+
     text = u"""Посреди предложения встречаются два
     наименования город Казань
     и его часть улица Баумана, остальные слова -
