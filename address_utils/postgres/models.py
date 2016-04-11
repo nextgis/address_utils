@@ -130,7 +130,7 @@ class Name(Base):
     id = Column(Integer, primary_key=True)
     name = Column(Text, unique=True)
     name_tsvect = Column(TSVECTOR)
-    name_tsquery = Column(TSQUERY)
+    name_tsquery = Column(TSQUERY, unique=True)
 
     addrobjs = relationship('Addrobj', secondary=placenames_table, backref='addrobjs')
 

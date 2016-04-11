@@ -22,7 +22,7 @@ def _initdb(csvfilename, drop_db=False):
 
     # if drop_db:
     #    Base.metadata.drop_all(engine)
-    # Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
 
     reader = csv.reader(open(csvfilename))
     # next(reader, None)  # skip the headers
@@ -74,6 +74,7 @@ def _initdb(csvfilename, drop_db=False):
                 name=formalname,
                 name_tsvect=formalname,
                 name_tsquery=formalname)
+            ts_query1 = name.name_tsquery
             session.add(name)
             session.commit()
         except:
@@ -83,12 +84,18 @@ def _initdb(csvfilename, drop_db=False):
                 name=offname,
                 name_tsvect=offname,
                 name_tsquery=offname)
+            ts_query2 = name.name_tsquery
             session.add(name)
             session.commit()
         except:
             session.rollback()
 
-        names = session.query(Name).filter(Name.name.in_([formalname, offname]))
+        # Different names can be translated to one name_tsquery
+        # so we search name_tsquery to prevent storing of small differences
+        # in the DB
+        names = session.query(Name).filter(Name.name_tsquery.in_([
+            ts_query1, ts_query2
+        ]))
         names = names.all()
 
         place = Addrobj(
@@ -136,7 +143,7 @@ if __name__ == "__main__":
     import sys
 
     filename = sys.argv[1]
-    # _initdb(filename)
+    _initdb(filename)
 
     text = u"""Посреди предложения встречаются два
     наименования город Казань
