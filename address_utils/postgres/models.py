@@ -209,13 +209,7 @@ class Name(Base):
                 if name1 != name2:
                     for addr1 in name_groups[name1]:
                         for addr2 in name_groups[name2]:
-                            res = []
                             if addr2.subaddress_of(addr1):
-                                if addr_counter[addr1] > 10:
-                                    import ipdb; ipdb.set_trace()
-                                    addr2.__hash__()
-                                    res.append(addr2)
-                                    print set(res)
                                 addr_counter[addr1] += 1
 
         return addr_counter
