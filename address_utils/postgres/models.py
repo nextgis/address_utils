@@ -181,20 +181,21 @@ class Name(Base):
     def extract_addresses(searched_text):
         names = Name.find_in_text(searched_text)
 
-        # Remove possible duplicates
-        name_groups = {n: [] for n in names}
-        for n in names:
-            addresses = [addr.get_address_hierarhy(raw_address=searched_text) for addr in n.addrobjs]
-            for addr in addresses:
-                if addr not in name_groups[n]:
-                    name_groups[n].append(addr)
-
-        # name_groups = {n: [addr.get_address_hierarhy(raw_address=searched_text) for addr in n.addrobjs] for n in names}
-
         # Находим веса для адресов:
         # Чем больше названий (Name) задействовано в адресе, тем лучше
         # Считаем сколько под-адресов входит в каждый адрес, возвращаем
         # адрес с наибольшим числом под-адресов
+
+        print searched_text
+        for n in names:
+            print n.name, n.name_tsquery
+        name_groups = {
+            n: list(
+                    set([   # Remove possible duplicates
+                        addr.get_address_hierarhy(raw_address=searched_text) for addr in n.addrobjs
+                    ])
+            ) for n in names
+        }
 
         addr_counter = Counter()
         for n in name_groups:
