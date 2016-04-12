@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.ext.declarative import declarative_base
 
 
-from address import Address
+from address_utils.address import Address
 
 DBSession = sessionmaker()
 dbsession = DBSession()
@@ -186,6 +186,7 @@ class Name(Base):
         # Считаем сколько под-адресов входит в каждый адрес, возвращаем
         # адрес с наибольшим числом под-адресов
 
+        print
         print searched_text
         for n in names:
             print n.name, n.name_tsquery
@@ -199,6 +200,7 @@ class Name(Base):
 
         addr_counter = Counter()
         for n in name_groups:
+            print n.name, len(name_groups[n])
             for addr in name_groups[n]:
                 addr_counter[addr] += 1
 
@@ -207,7 +209,13 @@ class Name(Base):
                 if name1 != name2:
                     for addr1 in name_groups[name1]:
                         for addr2 in name_groups[name2]:
+                            res = []
                             if addr2.subaddress_of(addr1):
+                                if addr_counter[addr1] > 10:
+                                    import ipdb; ipdb.set_trace()
+                                    addr2.__hash__()
+                                    res.append(addr2)
+                                    print set(res)
                                 addr_counter[addr1] += 1
 
         return addr_counter

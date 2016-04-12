@@ -46,7 +46,7 @@ class Address(object):
 
         :param settlement:      Name of the settlement (FIAS level: 6)
         :type settlement:       unicode
-        
+
         :param subcity:      Name of the subsettlement (FIAS level: 5)
         :type settlement:       unicode
 
@@ -75,7 +75,7 @@ class Address(object):
 
     def __unicode__(self):
         parts = [
-            "%s: %s" % (part, p)  for (part, p) in
+            "%s: %s" % (part, p) for (part, p) in
             [('Country', self.country),
              ('Region', self.region),
              ('Subregion', self.subregion),
@@ -115,6 +115,9 @@ class Address(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(unicode(self))
 
     def subaddress_of(self, other):
         """Return true if the addres is a subaddress of the other address

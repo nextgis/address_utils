@@ -96,6 +96,45 @@ class TestAddress(unittest.TestCase):
         expected = "Country: %s; Region: %s; Subregion: %s; City: %s; Subcity: %s; Street: %s; House: %s; POI: %s" % (country, region, subregion, city, subcity, street, house, poi)
         self.assertEqual(unicode(address), expected)
 
+    def test__hash__(self):
+        index = u'123456'
+        country = u'Российская Федерация'
+        region = u'Московская область'
+        subregion = u'Подольский район'
+        city = u'Подольск'
+        subcity = u'район Зеленый'
+        street = u'Малая'
+        house = u'234'
+        poi = u'Ресторан Рыбный'
+
+
+        # Two equal addresses
+        address = Address(
+            index=index,
+            country=country,
+            region=region,
+            subregion=subregion,
+            city=city,
+            subcity=subcity,
+            street=street,
+            house=house,
+            poi=poi
+        )
+        address2 = Address(
+            index=index,
+            country=country,
+            region=region,
+            subregion=subregion,
+            city=city,
+            subcity=subcity,
+            street=street,
+            house=house,
+            poi=poi
+        )
+
+        addr_set = set([address, address2])
+        self.assertEqual(len(addr_set), 1)
+
     def test_equal(self):
         addr1 = Address()
         addr2 = Address()
