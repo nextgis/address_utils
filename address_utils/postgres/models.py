@@ -180,36 +180,46 @@ class Name(Base):
     @staticmethod
     def extract_addresses(searched_text):
         names = Name.find_in_text(searched_text)
+        if not names:
+            return Counter()
+
+        print searched_text
 
         # Находим веса для адресов:
         # Чем больше названий (Name) задействовано в адресе, тем лучше
         # Считаем сколько под-адресов входит в каждый адрес, возвращаем
         # адрес с наибольшим числом под-адресов
 
-        print
-        print searched_text
-        for n in names:
-            print n.name, n.name_tsquery
-        name_groups = {
-            n: list(
-                    set([   # Remove possible duplicates
+        # Создадим хранилище адресов в формате:
+        # {название: множество адресов, в которых встречается название}
+        tmp_groups = {
+            n: set([   # Remove possible duplicates
                         addr.get_address_hierarhy(raw_address=searched_text) for addr in n.addrobjs
-                    ])
+                    ]
             ) for n in names
         }
+        # Remove duplicates of addresses:
+        name_groups = {names[0]: tmp_groups[names[0]]}
+        for n in names[1:]:
+            addresses = tmp_groups[n]
+            for stored_names in name_groups:
+                addresses -= name_groups[stored_names]
+            if len(addresses) > 0:
+                name_groups[n] = addresses
+
 
         addr_counter = Counter()
         for n in name_groups:
-            print n.name, len(name_groups[n])
             for addr in name_groups[n]:
                 addr_counter[addr] += 1
 
         for name1 in name_groups:
             for name2 in name_groups:
-                if name1 != name2:
-                    for addr1 in name_groups[name1]:
-                        for addr2 in name_groups[name2]:
-                            if addr2.subaddress_of(addr1):
-                                addr_counter[addr1] += 1
+                if name1 == name2:
+                    continue
+                for addr1 in name_groups[name1]:
+                    for addr2 in name_groups[name2]:
+                        if addr2.subaddress_of(addr1):
+                            addr_counter[addr1] += 1
 
         return addr_counter
