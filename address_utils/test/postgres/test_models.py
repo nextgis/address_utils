@@ -4,8 +4,6 @@ import sys
 
 import unittest
 
-from collections import Counter
-
 from sqlalchemy import create_engine
 
 from postgres.models import (
@@ -217,18 +215,6 @@ class TestModels(unittest.TestCase):
         self.assertTrue(u'Название31' in names)
         self.assertTrue(u'Название92' in names)
 
-    # def test_name_hierarchies_for_text(self):
-    #     text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
-    #
-    #     addresses = Name.hierarchies_for_text(text)
-    #     expected = [
-    #         Address(raw_address=text,
-    #                 region=u'Oblast Name11',
-    #                 city=u'Gorod Название31',
-    #                 subcity=u'Kvartal Name81',
-    #                 street=u'Street Название91')
-    #     ]
-    #     self.assertEquals(expected, addresses)
 
     def test_name_extract_addresses(self):
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
@@ -379,6 +365,76 @@ class TestModels(unittest.TestCase):
         addr, count = addresses.most_common(1)[0]
         self.assertEqual(expected, addr)
         self.assertEqual(count, 1)
+
+        # Добавим несколько адресов в иерархию с одинаковыми называниями
+        # дубликаты названий не должны влиять на результат
+        name1 = session.query(Name).filter(Name.name == 'Название31').one()
+        name2 = session.query(Name).filter(Name.name == 'Name32').one()
+
+        node1 = Addrobj(aoid='33', aolevel=5, aoguid='33', parentguid='3', currstatus=0,
+                       shortname='Raion', formalname=name1.name, names=[name1, name2])
+
+        node2 = Addrobj(aoid='333', aolevel=7, aoguid='333', parentguid='33', currstatus=0,
+                       shortname='Street', formalname=name1.name, names=[name1, name2])
+
+        session.add(node2)
+        session.add(node1)
+        session.commit()
+        session.close()
+
+        text = u"""Список названий: Название91 Название31, встречающихся в тексте"""
+        addresses = Name.extract_addresses(text)
+        # N3: (N3, N1): 1
+        # N3: (N3, N3, N1): 1
+        # N3: (N3, N3, N3, N1): 1
+        # N9: (N9, N8, N3, N1): 2
+        self.assertEqual(len(addresses), 4)
+
+        expected = Address(raw_address=text,
+                           region=u'Oblast Name11',
+                           city=u'Gorod Название31',
+                           subcity=u'Kvartal Name81',
+                           street=u'Street Название91'
+                           )
+
+        # import ipdb; ipdb.set_trace()
+        addr, count = addresses.most_common(1)[0]
+        self.assertEqual(expected, addr)
+        self.assertEqual(count, 2)
+        del addresses[addr]
+
+
+        common = addresses.most_common(3)
+        expected = [
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+            ),
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Raion Название31'
+            ),
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Raion Название31',
+                street=u'Street Название31'
+            ),
+        ]
+
+        got = [c for (a, c) in common]
+        self.assertItemsEqual(got, [1, 1, 1])
+
+        got = [a for (a, c) in common]
+        for addr in got:
+            assert addr in expected
+            del addresses[addr]
+
+
 
 if __name__ == '__main__':
     suite = unittest.makeSuite(TestModels, 'test')

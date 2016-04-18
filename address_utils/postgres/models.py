@@ -145,45 +145,12 @@ class Name(Base):
 
         return names
 
-    # @staticmethod
-    # def hierarchies_for_text(searched_text):
-    #     """
-    #     Find all address names that are matched in searched_text,
-    #     then create list of Addresses that corresponds to the names.
-    #
-    #     Return list of addresses (Address objects):
-    #         * addresses are unique (the list doesn't contain duplicates);
-    #         * addresses are 'gready': every address takes as much address names as possible.
-    #     """
-    #     names = Name.find_in_text(searched_text)
-    #
-    #     addresses = []
-    #     for name in names:
-    #         for addr in name.addrobjs:
-    #             addresses.append(addr.get_address_hierarhy())
-    #
-    #     # Remove subaddresses:
-    #     result = []
-    #     size = len(addresses)
-    #     for i in range(size):
-    #         subaddress = False
-    #         for j in range(i + 1, size):
-    #             if addresses[i].subaddress_of(addresses[j]):
-    #                 subaddress = True
-    #                 break
-    #         if not subaddress:
-    #             addresses[i].raw_address = searched_text
-    #             result.append(addresses[i])
-    #
-    #     return result
 
     @staticmethod
     def extract_addresses(searched_text):
         names = Name.find_in_text(searched_text)
         if not names:
             return Counter()
-
-        print searched_text
 
         # Находим веса для адресов:
         # Чем больше названий (Name) задействовано в адресе, тем лучше
