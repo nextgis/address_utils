@@ -4,6 +4,8 @@ import sys
 
 import unittest
 
+from collections import Counter
+
 from sqlalchemy import create_engine
 
 from postgres.models import (
@@ -215,34 +217,27 @@ class TestModels(unittest.TestCase):
         self.assertTrue(u'Название31' in names)
         self.assertTrue(u'Название92' in names)
 
-
     def test_name_extract_addresses(self):
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
         addresses = Name.extract_addresses(text)
         self.assertEqual(len(addresses), 2)
+        expected = Counter({
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Kvartal Name81',
+                street=u'Street Название91'
+            ): 2,
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31'
+            ): 1
 
-        expected = Address(
-            raw_address=text,
-            region=u'Oblast Name11',
-            city=u'Gorod Название31',
-            subcity=u'Kvartal Name81',
-            street=u'Street Название91'
-        )
-
-        # import ipdb; ipdb.set_trace()
+        })
         addr, count = addresses.most_common(1)[0]
-        self.assertEqual(expected, addr)
-        self.assertEqual(count, 2)
-        del addresses[addr]
-
-        expected = Address(
-            raw_address=text,
-            region=u'Oblast Name11',
-            city=u'Gorod Название31'
-        )
-        addr, count = addresses.most_common(1)[0]
-        self.assertEqual(expected, addr)
-        self.assertEqual(count, 1)
+        self.assertEqual(expected, addresses)
 
         text = u"""Список названий: Название91 Name81 Name71 Name11, встречающихся в тексте"""
         addresses = Name.extract_addresses(text)
@@ -251,123 +246,41 @@ class TestModels(unittest.TestCase):
         # N8: (N8, N3, N1):2
         # N9: (N9, N8, N3, N1): 3
         self.assertEqual(len(addresses), 4)
-
-        expected = Address(
-            raw_address=text,
-            region=u'Oblast Name11',
-            city=u'Gorod Название31',
-            subcity=u'Kvartal Name81',
-            street=u'Street Название91'
-        )
-
-        addr, count = addresses.most_common(1)[0]
-        self.assertEqual(expected, addr)
-        self.assertEqual(count, 3)
-        del addresses[addr]
-
-        common = addresses.most_common(2)
-        expected = [
+        expected = Counter({
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Kvartal Name81',
+                street=u'Street Название91'
+            ): 3,
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Name71',
-            ),
+            ): 2,
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81'
-            ),
-        ]
+            ): 2,
 
-        got = [c for (a, c) in common]
-        self.assertItemsEqual(got, [2, 2])
-
-        got = [a for (a, c) in common]
-        for addr in got:
-            assert addr in expected
-            del addresses[addr]
-
-        expected = Address(raw_address=text,
-                           region=u'Oblast Name11')
-
-        addr, count = addresses.most_common(1)[0]
-        self.assertEqual(expected, addr)
-        self.assertEqual(count, 1)
-
-        # Add new row to the DB, duplicate names
-        session = DBSession()
-        names = session.query(Name).filter(Name.name.in_(['Name81', 'Name82']))
-        names = names.all()
-        node = Addrobj(aoid='8.dup', aolevel=7, aoguid='8.dup', parentguid='6', currstatus=0,
-                       shortname='Street', formalname=names[0].name, names=names)
-
-        session.add(node)
-        session.commit()
-        session.close()
-
-        text = u"""Список названий: Название91 Name81 Name71 Name11, встречающихся в тексте"""
-        addresses = Name.extract_addresses(text)
-        # N1: (N1): 1
-        # N7: (N7, N3, N1): 2
-        # N8: (N8, N3, N1):2, (N6, N6, N2, N1): 2
-        # N9: (N9, N8, N3, N1): 3
-        self.assertEqual(len(addresses), 5)
-
-        expected = Address(raw_address=text,
-                           region=u'Oblast Name11',
-                           city=u'Gorod Название31',
-                           subcity=u'Kvartal Name81',
-                           street=u'Street Название91'
-                           )
-
-        # import ipdb; ipdb.set_trace()
-        addr, count = addresses.most_common(1)[0]
-        self.assertEqual(expected, addr)
-        self.assertEqual(count, 3)
-        del addresses[addr]
-
-        common = addresses.most_common(3)
-        expected = [
             Address(
                 raw_address=text,
-                region=u'Oblast Name11',
-                city=u'Gorod Название31',
-                subcity=u'Raion Name71',
-            ),
-            Address(
-                raw_address=text,
-                region=u'Oblast Name11',
-                city=u'Gorod Название31',
-                subcity=u'Kvartal Name81'
-            ),
-            Address(
-                raw_address=text,
-                region=u'Oblast Name11',
-                subregion=u'Raion Name21',
-                settlement=u'Der. Name61',
-                street=u'Street Name81'
-            ),
-        ]
+                region=u'Oblast Name11'
+            ): 1
+        })
+        self.assertEqual(expected, addresses)
 
-        got = [c for (a, c) in common]
-        self.assertItemsEqual(got, [2, 2, 2])
-
-        got = [a for (a, c) in common]
-        for addr in got:
-            assert addr in expected
-            del addresses[addr]
-
-        expected = Address(raw_address=text,
-                           region=u'Oblast Name11')
-
-        addr, count = addresses.most_common(1)[0]
-        self.assertEqual(expected, addr)
-        self.assertEqual(count, 1)
 
         # Добавим несколько адресов в иерархию с одинаковыми называниями
         # дубликаты названий не должны влиять на результат
+        session = DBSession()
+
+        text = u"""Список названий: Название91 Название31, встречающихся в тексте"""
+
         name1 = session.query(Name).filter(Name.name == 'Название31').one()
         name2 = session.query(Name).filter(Name.name == 'Name32').one()
 
@@ -382,7 +295,6 @@ class TestModels(unittest.TestCase):
         session.commit()
         session.close()
 
-        text = u"""Список названий: Название91 Название31, встречающихся в тексте"""
         addresses = Name.extract_addresses(text)
         # N3: (N3, N1): 1
         # N3: (N3, N3, N1): 1
@@ -390,49 +302,72 @@ class TestModels(unittest.TestCase):
         # N9: (N9, N8, N3, N1): 2
         self.assertEqual(len(addresses), 4)
 
-        expected = Address(raw_address=text,
-                           region=u'Oblast Name11',
-                           city=u'Gorod Название31',
-                           subcity=u'Kvartal Name81',
-                           street=u'Street Название91'
-                           )
-
-        # import ipdb; ipdb.set_trace()
-        addr, count = addresses.most_common(1)[0]
-        self.assertEqual(expected, addr)
-        self.assertEqual(count, 2)
-        del addresses[addr]
-
-
-        common = addresses.most_common(3)
-        expected = [
+        addresses = Name.extract_addresses(text)
+        expected = Counter({
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
-            ),
+            ): 1,
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31'
-            ),
+            ): 1,
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31',
                 street=u'Street Название31'
-            ),
-        ]
+            ): 1,
+            Address(raw_address=text,
+                   region=u'Oblast Name11',
+                   city=u'Gorod Название31',
+                   subcity=u'Kvartal Name81',
+                   street=u'Street Название91'
+            ): 2
+        })
+        self.assertEqual(addresses, expected)
 
-        got = [c for (a, c) in common]
-        self.assertItemsEqual(got, [1, 1, 1])
+        # Пусть теперь в тексте встречаются дубликаты
 
-        got = [a for (a, c) in common]
-        for addr in got:
-            assert addr in expected
-            del addresses[addr]
+        text = u"Список названий: Название91 Название31  Название31 Название31"
+        addresses = Name.extract_addresses(text)
+        # N3: (N3, N1): 1
+        # N3: (N3, N3, N1): 2
+        # N3: (N3, N3, N3, N1): 3
+        # N9: (N9, N8, N3, N1): 2
+        self.assertEqual(len(addresses), 4)
+
+        expected = Counter({
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+            ): 1,
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Raion Название31'
+            ): 2,
+            Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Raion Название31',
+                street=u'Street Название31'
+            ): 3,
+            Address(raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Kvartal Name81',
+                street=u'Street Название91'
+            ): 2,
+        })
+        self.assertEqual(addresses, expected)
 
 
 
