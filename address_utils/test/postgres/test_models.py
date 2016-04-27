@@ -9,6 +9,7 @@ from collections import Counter
 from sqlalchemy import create_engine
 
 from postgres.models import (
+    AddressParser,
     Addrobj,
     Name,
     Base,
@@ -334,6 +335,7 @@ class TestModels(unittest.TestCase):
         # Пусть теперь в тексте встречаются дубликаты
 
         text = u"Список названий: Название91 Название31  Название31 Название31"
+        # import ipdb; ipdb.set_trace()
         addresses = Name.extract_addresses(text)
         # N3: (N3, N1): 1
         # N3: (N3, N3, N1): 2
@@ -367,7 +369,25 @@ class TestModels(unittest.TestCase):
                 street=u'Street Название91'
             ): 2,
         })
-        self.assertEqual(addresses, expected)
+        # self.assertEqual(addresses, expected)
+
+
+    def test_addressparser_tokenize(self):
+        parser = AddressParser()
+        test_text = '''Просто текст. Проверяем сответствие текста тем, что загоняем его в Postgres: select to_tsvector('ru', 'Текст')'''
+        expected = {
+            u'postgr':[11],
+            u'ru':[15],
+            u'select':[12],
+            u'tsvector':[14],
+            u'загоня':[8],
+            u'проверя':[3],
+            u'прост':[1],
+            u'сответств':[4],
+            u'текст':[2,5,16],
+        }
+        tokens = parser.tokenize(test_text)
+        self.assertEqual(tokens, expected)
 
 
 

@@ -34,6 +34,25 @@ class TSQUERY(types.UserDefinedType):
         return col
 
 
+class AddressParser(object):
+    def __init__(self):
+        self.bind = Base.metadata.bind
+
+    def tokenize(self, address_text):
+        # Convert address_text to tokens and their positions
+        sql = """ SELECT to_tsvector('ru', %s)"""
+        tsvector = self.bind.execute(sql, address_text)
+        tsvector = tsvector.fetchone()[0]
+        tokens = {}
+        for description in tsvector.split():
+            token, positions = description.split(':')
+            positions = [int(p) for p in positions.split(',')]
+            token = token.decode('utf-8')[1:-1]   # Drop quotes
+            tokens[token] = positions
+
+        return tokens
+
+
 placenames_table = Table(
     'addr_names', Base.metadata,
     Column('addrobj_id', Integer, ForeignKey('addrobj.id')),
