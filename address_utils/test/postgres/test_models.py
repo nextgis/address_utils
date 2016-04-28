@@ -10,13 +10,13 @@ from sqlalchemy import create_engine
 
 from postgres.models import (
     AddressParser,
+    Address,
     Addrobj,
     Name,
     Base,
     DBSession
 )
 
-from address import Address
 
 connection_string = 'postgresql://geocoder:@localhost:5432/test_addr'
 engine = create_engine(connection_string)
@@ -182,23 +182,27 @@ class TestModels(unittest.TestCase):
         adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11')
         self.assertEquals(adm, expected)
+        self.assertEquals(adm.addrobj.aoid, '1')
 
         node = session.query(Addrobj).filter(Addrobj.aoid == '2').one()
         adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21')
         self.assertEquals(adm, expected)
+        self.assertEquals(adm.addrobj.aoid, '2')
 
         node = session.query(Addrobj).filter(Addrobj.aoid == '6').one()
         adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21',
                            settlement=u'Der. Name61')
         self.assertEquals(adm, expected)
+        self.assertEquals(adm.addrobj.aoid, '6')
 
         node = session.query(Addrobj).filter(Addrobj.aoid == '9').one()
         adm = node.get_address_hierarhy()
         expected = Address(region=u'Oblast Name11', city=u'Gorod Название31',
                            subcity=u'Kvartal Name81', street=u'Street Название91')
         self.assertEquals(adm, expected)
+        self.assertEquals(adm.addrobj.aoid, '9')
 
         parts = ['region', 'city', 'subcity', 'street']
         for p in parts:
@@ -218,9 +222,10 @@ class TestModels(unittest.TestCase):
         self.assertTrue(u'Название31' in names)
         self.assertTrue(u'Название92' in names)
 
-    def test_name_extract_addresses(self):
+    def test_addresparser_extract_addresses(self):
+        parser = AddressParser()
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
-        addresses = Name.extract_addresses(text)
+        addresses = parser.extract_addresses(text)
         self.assertEqual(len(addresses), 2)
         expected = Counter({
             Address(
@@ -241,7 +246,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(expected, addresses)
 
         text = u"""Список названий: Название91 Name81 Name71 Name11, встречающихся в тексте"""
-        addresses = Name.extract_addresses(text)
+        addresses = parser.extract_addresses(text)
         # N1: (N1): 1
         # N7: (N7, N3, N1): 2
         # N8: (N8, N3, N1):2
@@ -296,14 +301,14 @@ class TestModels(unittest.TestCase):
         session.commit()
         session.close()
 
-        addresses = Name.extract_addresses(text)
+        addresses = parser.extract_addresses(text)
         # N3: (N3, N1): 1
         # N3: (N3, N3, N1): 1
         # N3: (N3, N3, N3, N1): 1
         # N9: (N9, N8, N3, N1): 2
         self.assertEqual(len(addresses), 4)
 
-        addresses = Name.extract_addresses(text)
+        addresses = parser.extract_addresses(text)
         expected = Counter({
             Address(
                 raw_address=text,
@@ -336,7 +341,7 @@ class TestModels(unittest.TestCase):
 
         text = u"Список названий: Название91 Название31  Название31 Название31"
         # import ipdb; ipdb.set_trace()
-        addresses = Name.extract_addresses(text)
+        addresses = parser.extract_addresses(text)
         # N3: (N3, N1): 1
         # N3: (N3, N3, N1): 2
         # N3: (N3, N3, N3, N1): 3
@@ -374,20 +379,37 @@ class TestModels(unittest.TestCase):
 
     def test_addressparser_tokenize(self):
         parser = AddressParser()
-        test_text = '''Просто текст. Проверяем сответствие текста тем, что загоняем его в Postgres: select to_tsvector('ru', 'Текст')'''
+        test_text = '''Просто текст. Проверяем сответствие текста
+        тем, что загоняем его в Postgres:
+            select to_tsvector('ru', 'Текст')'''
         expected = {
-            u'postgr':[11],
-            u'ru':[15],
-            u'select':[12],
-            u'tsvector':[14],
-            u'загоня':[8],
-            u'проверя':[3],
-            u'прост':[1],
-            u'сответств':[4],
-            u'текст':[2,5,16],
+            u'postgr': [11],
+            u'ru': [15],
+            u'select': [12],
+            u'tsvector': [14],
+            u'загоня': [8],
+            u'проверя': [3],
+            u'прост': [1],
+            u'сответств': [4],
+            u'текст': [2, 5, 16],
         }
         tokens = parser.tokenize(test_text)
         self.assertEqual(tokens, expected)
+
+        expected = {
+            u'postgr': 1,
+            u'ru': 1,
+            u'select': 1,
+            u'tsvector': 1,
+            u'загоня': 1,
+            u'проверя': 1,
+            u'прост': 1,
+            u'сответств': 1,
+            u'текст': 3
+        }
+        tokens = parser.tokenize(test_text, count=True)
+        self.assertEqual(tokens, expected)
+
 
 
 
