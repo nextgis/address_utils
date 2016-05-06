@@ -4,19 +4,17 @@ import sys
 
 import unittest
 
-from collections import Counter
-
 from sqlalchemy import create_engine
 
+from postgres import DBSession
 from postgres.models import (
     AddressParser,
     Address,
+    Tokenizer,
     Addrobj,
     Name,
     Base,
-    DBSession
 )
-
 
 connection_string = 'postgresql://geocoder:@localhost:5432/test_addr'
 engine = create_engine(connection_string)
@@ -24,16 +22,18 @@ engine = create_engine(connection_string)
 Base.metadata.bind = engine
 DBSession.configure(bind=engine)
 
+def _sort_addr_str(addr_str):
+    return ' '.join(sorted(addr_str.split()))
+
 class TestModels(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        Base.metadata.drop_all(engine)
         Base.metadata.create_all(engine)
 
         # conn = engine.connect()
 
-        session = DBSession()
+        cls.session = DBSession()
         # try:
         #     sql = """CREATE TEXT SEARCH DICTIONARY russian_ispell (
         #         TEMPLATE = ispell,
@@ -65,9 +65,9 @@ class TestModels(unittest.TestCase):
         node = Addrobj(aoid='1', aoguid='1', aolevel=1, currstatus=0,
                        shortname='Oblast', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
         ######################################
         name1 = Name(name='Name21', name_tsquery='Name21')
@@ -75,18 +75,18 @@ class TestModels(unittest.TestCase):
         node = Addrobj(aoid='2', aolevel=3, aoguid='2', parentguid='1', currstatus=0,
                        shortname='Raion', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
         name1 = Name(name='Название31', name_tsquery='Название31')
         name2 = Name(name='Name32', name_tsquery='Name32')
         node = Addrobj(aoid='3', aolevel=4, aoguid='3', parentguid='1', currstatus=0,
                        shortname='Gorod', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
         ######################################
 
@@ -95,45 +95,45 @@ class TestModels(unittest.TestCase):
         node = Addrobj(aoid='4', aolevel=6, aoguid='4', parentguid='2', currstatus=0,
                        shortname='Der.', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
         name1 = Name(name='Name51', name_tsquery='Name51')
         name2 = Name(name='Name52', name_tsquery='Name52')
         node = Addrobj(aoid='5', aolevel=6, aoguid='5', parentguid='2', currstatus=0,
                        shortname='Der.', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
         name1 = Name(name='Name61', name_tsquery='Name61')
         name2 = Name(name='Name62', name_tsquery='Name62')
         node = Addrobj(aoid='6', aolevel=6, aoguid='6', parentguid='2', currstatus=0,
                        shortname='Der.', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
         name1 = Name(name='Name71', name_tsquery='Name71')
         name2 = Name(name='Name72', name_tsquery='Name72')
         node = Addrobj(aoid='7', aolevel=5, aoguid='7', parentguid='3', currstatus=0,
                        shortname='Raion', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
         name1 = Name(name='Name81', name_tsquery='Name81')
         name2 = Name(name='Name82', name_tsquery='Name82')
         node = Addrobj(aoid='8', aolevel=5, aoguid='8', parentguid='3', currstatus=0,
                        shortname='Kvartal', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
 
 
         ######################################
@@ -143,25 +143,22 @@ class TestModels(unittest.TestCase):
         node = Addrobj(aoid='9', aolevel=7, aoguid='9', parentguid='8', currstatus=0,
                        shortname='Street', formalname=name1.name, names=[name1, name2])
 
-        session.add(name1)
-        session.add(name2)
-        session.add(node)
+        cls.session.add(name1)
+        cls.session.add(name2)
+        cls.session.add(node)
         ######################################
 
-        session.commit()
-        session.close()
+        cls.session.commit()
 
     @classmethod
     def tearDownClass(cls):
         # import ipdb; ipdb.set_trace()
-        # Base.metadata.drop_all(engine)
-        pass
+        cls.session.close()
+        Base.metadata.drop_all(engine)
 
     def test_addrobj_get_parents(self):
-        session = DBSession()
-
-        node = session.query(Addrobj).filter(Addrobj.aoid == '9').one()
-        parents = node.get_admin_order()
+        node = self.session.query(Addrobj).filter(Addrobj.aoid == '9').one()
+        parents = node.get_admin_order(self.session)
 
         y = parents.pop()
         self.assertEquals(y.aoid, '9')
@@ -173,32 +170,41 @@ class TestModels(unittest.TestCase):
         self.assertEquals(y.aoid, '1')
         self.assertEquals(parents, [])
 
-        session.close()
 
     def test_addrobj_get_address_hierarhy(self):
-        session = DBSession()
 
-        node = session.query(Addrobj).filter(Addrobj.aoid == '1').one()
-        adm = node.get_address_hierarhy()
+        node = self.session.query(Addrobj).filter(Addrobj.aoid == '1').one()
+        adm = node.get_address_hierarhy(self.session)
         expected = Address(region=u'Oblast Name11')
         self.assertEquals(adm, expected)
         self.assertEquals(adm.addrobj.aoid, '1')
+        expected_addr_str = _sort_addr_str("Oblast Name11 Name12")
+        self.assertEquals(_sort_addr_str(adm.full_addr_str),
+                          expected_addr_str)
 
-        node = session.query(Addrobj).filter(Addrobj.aoid == '2').one()
-        adm = node.get_address_hierarhy()
+        node = self.session.query(Addrobj).filter(Addrobj.aoid == '2').one()
+        adm = node.get_address_hierarhy(self.session)
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21')
         self.assertEquals(adm, expected)
         self.assertEquals(adm.addrobj.aoid, '2')
+        expected_addr_str = _sort_addr_str("Oblast Name11 Name12 Raion Name21 Name22")
+        self.assertEquals(_sort_addr_str(adm.full_addr_str),
+                          expected_addr_str)
 
-        node = session.query(Addrobj).filter(Addrobj.aoid == '6').one()
-        adm = node.get_address_hierarhy()
+
+        node = self.session.query(Addrobj).filter(Addrobj.aoid == '6').one()
+        adm = node.get_address_hierarhy(self.session)
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21',
                            settlement=u'Der. Name61')
         self.assertEquals(adm, expected)
         self.assertEquals(adm.addrobj.aoid, '6')
+        expected_addr_str = _sort_addr_str("Oblast Name11 Name12 Raion Name21 Name22 Der. Name61 Name62")
+        self.assertEquals(_sort_addr_str(adm.full_addr_str),
+                          expected_addr_str)
 
-        node = session.query(Addrobj).filter(Addrobj.aoid == '9').one()
-        adm = node.get_address_hierarhy()
+
+        node = self.session.query(Addrobj).filter(Addrobj.aoid == '9').one()
+        adm = node.get_address_hierarhy(self.session)
         expected = Address(region=u'Oblast Name11', city=u'Gorod Название31',
                            subcity=u'Kvartal Name81', street=u'Street Название91')
         self.assertEquals(adm, expected)
@@ -210,39 +216,36 @@ class TestModels(unittest.TestCase):
             cropped_addr = expected.mask_address_parts(used_parts)
             self.assertNotEqual(adm, cropped_addr)
 
-        session.close()
 
     def test_name_find_in_text(self):
         # TODO: check quotes
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
-        names = Name.find_in_text(text)
+        names = Name.find_in_text(self.session, text)
 
         names = [n.name for n in names]
         self.assertEquals(len(names), 2)
         self.assertTrue(u'Название31' in names)
         self.assertTrue(u'Название92' in names)
 
-    def test_addresparser_extract_addresses(self):
+    def xtest_addresparser_extract_addresses(self):
         parser = AddressParser()
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
+        # import ipdb; ipdb.set_trace()
         addresses = parser.extract_addresses(text)
-        self.assertEqual(len(addresses), 2)
-        expected = Counter({
+        expected = set([
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81',
                 street=u'Street Название91'
-            ): 2,
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31'
-            ): 1
-
-        })
-        addr, count = addresses.most_common(1)[0]
+            )
+        ])
         self.assertEqual(expected, addresses)
 
         text = u"""Список названий: Название91 Name81 Name71 Name11, встречающихся в тексте"""
@@ -251,44 +254,41 @@ class TestModels(unittest.TestCase):
         # N7: (N7, N3, N1): 2
         # N8: (N8, N3, N1):2
         # N9: (N9, N8, N3, N1): 3
-        self.assertEqual(len(addresses), 4)
-        expected = Counter({
+        expected = set([
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81',
                 street=u'Street Название91'
-            ): 3,
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Name71',
-            ): 2,
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81'
-            ): 2,
-
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11'
-            ): 1
-        })
+            )
+        ])
         self.assertEqual(expected, addresses)
 
 
         # Добавим несколько адресов в иерархию с одинаковыми называниями
         # дубликаты названий не должны влиять на результат
-        session = DBSession()
 
         text = u"""Список названий: Название91 Название31, встречающихся в тексте"""
 
-        name1 = session.query(Name).filter(Name.name == 'Название31').one()
-        name2 = session.query(Name).filter(Name.name == 'Name32').one()
+        name1 = self.session.query(Name).filter(Name.name == 'Название31').one()
+        name2 = self.session.query(Name).filter(Name.name == 'Name32').one()
 
         node1 = Addrobj(aoid='33', aolevel=5, aoguid='33', parentguid='3', currstatus=0,
                        shortname='Raion', formalname=name1.name, names=[name1, name2])
@@ -296,45 +296,42 @@ class TestModels(unittest.TestCase):
         node2 = Addrobj(aoid='333', aolevel=7, aoguid='333', parentguid='33', currstatus=0,
                        shortname='Street', formalname=name1.name, names=[name1, name2])
 
-        session.add(node2)
-        session.add(node1)
-        session.commit()
-        session.close()
+        self.session.add(node2)
+        self.session.add(node1)
+        self.session.commit()
 
         addresses = parser.extract_addresses(text)
         # N3: (N3, N1): 1
         # N3: (N3, N3, N1): 1
         # N3: (N3, N3, N3, N1): 1
         # N9: (N9, N8, N3, N1): 2
-        self.assertEqual(len(addresses), 4)
-
         addresses = parser.extract_addresses(text)
-        expected = Counter({
+        expected = set([
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
-            ): 1,
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31'
-            ): 1,
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31',
                 street=u'Street Название31'
-            ): 1,
+            ),
             Address(raw_address=text,
                    region=u'Oblast Name11',
                    city=u'Gorod Название31',
                    subcity=u'Kvartal Name81',
                    street=u'Street Название91'
-            ): 2
-        })
+            )
+        ])
         self.assertEqual(addresses, expected)
 
         # Пусть теперь в тексте встречаются дубликаты
@@ -346,39 +343,87 @@ class TestModels(unittest.TestCase):
         # N3: (N3, N3, N1): 2
         # N3: (N3, N3, N3, N1): 3
         # N9: (N9, N8, N3, N1): 2
-        self.assertEqual(len(addresses), 4)
-
-        expected = Counter({
+        expected = set([
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
-            ): 1,
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31'
-            ): 2,
+            ),
             Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31',
                 street=u'Street Название31'
-            ): 3,
+            ),
             Address(raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81',
                 street=u'Street Название91'
-            ): 2,
-        })
-        # self.assertEqual(addresses, expected)
+            ),
+        ])
+        self.assertEqual(addresses, expected)
 
-
-    def test_addressparser_tokenize(self):
+    def parser_test_addresparser_parse_addresses(self):
         parser = AddressParser()
+        
+        text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
+        # The tokens are:
+        #    node: 2
+        #    название92: 1
+        #    subnod: 1
+        #    название31: 1
+        #    label: 1
+          
+        addresses = parser.parse_address(self.session, text)
+        # Tokens of the addresses: 
+        #  (1)
+        #    name11 1
+        #    name12 1
+        #    name32 1
+        #    name82 1
+        #    name81 1
+        #    kvartal 1
+        #    название91 1
+        #    oblast 1
+        #    название92 1
+        #    gorod 1
+        #    street 1
+        #    название31 1
+        #  (2)
+        #    gorod 1
+        #    name11 1
+        #    name12 1
+        #    name32 1
+        #    oblast 1
+        #    название31 1
+        
+        expected = set([
+            (Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Kvartal Name81',
+                street=u'Street Название91'
+            ), 14),
+            (Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31'
+            ), 10)
+        ])
+        self.assertEqual(expected, set(addresses))
+
+
+    def test_tokenizer_tokenize(self):
+        tokenizer = Tokenizer()
         test_text = '''Просто текст. Проверяем сответствие текста
         тем, что загоняем его в Postgres:
             select to_tsvector('ru', 'Текст')'''
@@ -393,7 +438,7 @@ class TestModels(unittest.TestCase):
             u'сответств': [4],
             u'текст': [2, 5, 16],
         }
-        tokens = parser.tokenize(test_text)
+        tokens = tokenizer.tokenize(test_text)
         self.assertEqual(tokens, expected)
 
         expected = {
@@ -407,14 +452,52 @@ class TestModels(unittest.TestCase):
             u'сответств': 1,
             u'текст': 3
         }
-        tokens = parser.tokenize(test_text, count=True)
+        tokens = tokenizer.tokenize(test_text, count=True)
         self.assertEqual(tokens, expected)
 
+    def test_addresparser_dist(self):
+        text1 = "Название1 Название2 название"
+        text2 = "Название1 Название3 название"
+        addr1 = Address(full_addr_str=text1)
+        addr2 = Address(full_addr_str=text2)
+        diff = AddressParser._dist(addr1, addr2)
+        expected = 2
+        self.assertEquals(diff, expected)
 
+        text1 = "Название1 Название3 название"
+        text2 = "Название1 Название3 название"
+        addr1 = Address(full_addr_str=text1)
+        addr2 = Address(full_addr_str=text2)
+        diff = AddressParser._dist(addr1, addr2)
+        expected = 0
+        self.assertEquals(diff, expected)
+
+        text1 = "название4"
+        text2 = "Название1 Название3 название"
+        addr1 = Address(full_addr_str=text1)
+        addr2 = Address(full_addr_str=text2)
+        diff = AddressParser._dist(addr1, addr2)
+        expected = 4
+        self.assertEquals(diff, expected)
+
+
+        text1 = ""
+        text2 = "Название1 Название3 название"
+        addr1 = Address(full_addr_str=text1)
+        addr2 = Address(full_addr_str=text2)
+        diff = AddressParser._dist(addr1, addr2)
+        expected = 3
+        self.assertEquals(diff, expected)
 
 
 if __name__ == '__main__':
     suite = unittest.makeSuite(TestModels, 'test')
+    runner = unittest.TextTestRunner()
+    result = runner.run(suite)
+    if not result.wasSuccessful():
+        sys.exit(1)
+
+    suite = unittest.makeSuite(TestModels, 'parser')
     runner = unittest.TextTestRunner()
     result = runner.run(suite)
     if not result.wasSuccessful():

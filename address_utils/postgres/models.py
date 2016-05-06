@@ -4,21 +4,18 @@ from collections import Counter
 
 from sqlalchemy import Table, Column, ForeignKey, Integer, Text
 from sqlalchemy import text
-from sqlalchemy.orm import relationship, sessionmaker
 
 from sqlalchemy import types
 from sqlalchemy import func
 
+from sqlalchemy.orm import relationship
+
 from sqlalchemy.dialects.postgresql import TSVECTOR
-
-from sqlalchemy.ext.declarative import declarative_base
-
 
 from address_utils.address import Address as BaseAddress
 
-DBSession = sessionmaker()
-dbsession = DBSession()
-Base = declarative_base()
+
+from address_utils.postgres import Base
 
 
 class TSQUERY(types.UserDefinedType):
@@ -37,6 +34,7 @@ class TSQUERY(types.UserDefinedType):
 class Address(BaseAddress):
     def __init__(self,
                  addrobj=None,
+                 full_addr_str=None,
                  raw_address=None,
                  index=None,
                  country=None,
@@ -48,7 +46,13 @@ class Address(BaseAddress):
                  street=None,
                  house=None,
                  poi=None):
+
         self._addrobj = addrobj
+
+        # String of names for all addresses
+        self._full_addr_str = full_addr_str
+
+        self.tokenizer = Tokenizer()
         super(Address, self).\
             __init__(
                  raw_address,
@@ -71,54 +75,21 @@ class Address(BaseAddress):
     def addrobj(self, value):
         self._addrobj = value
 
+    @property
+    def full_addr_str(self):
+        return self._full_addr_str
 
-class AddressParser(object):
+    @full_addr_str.setter
+    def full_addr_str(self, value):
+        self._full_addr_str = value
+
+    def bag_of_words(self):
+        counts = self.tokenizer.tokenize(self.full_addr_str, count=True)
+        return Counter(counts)
+
+class Tokenizer(object):
     def __init__(self):
         self.bind = Base.metadata.bind
-
-    def extract_addresses(self, searched_text):
-        names = Name.find_in_text(searched_text)
-        if not names:
-            return Counter()
-
-        # Находим веса для адресов:
-        # Чем больше названий (Name) задействовано в адресе, тем лучше
-        # Считаем сколько под-адресов входит в каждый адрес, возвращаем
-        # адрес с наибольшим числом под-адресов
-
-        # Создадим хранилище адресов в формате:
-        # {название: множество адресов, в которых встречается название}
-        tmp_groups = {
-            n: set([   # Remove possible duplicates
-                        addr.get_address_hierarhy(raw_address=searched_text) for addr in n.addrobjs
-                    ]
-            ) for n in names
-        }
-        # Remove duplicates of addresses:
-        name_groups = {names[0]: tmp_groups[names[0]]}
-        for n in names[1:]:
-            addresses = tmp_groups[n]
-            for stored_names in name_groups:
-                addresses -= name_groups[stored_names]
-            if len(addresses) > 0:
-                name_groups[n] = addresses
-
-
-        addr_counter = Counter()
-        for n in name_groups:
-            for addr in name_groups[n]:
-                addr_counter[addr] += 1
-
-        for name1 in name_groups:
-            for name2 in name_groups:
-                if name1 == name2:
-                    continue
-                for addr1 in name_groups[name1]:
-                    for addr2 in name_groups[name2]:
-                        if addr2.subaddress_of(addr1):
-                            addr_counter[addr1] += 1
-
-        return addr_counter
 
     def tokenize(self, address_text, count=False):
         # Convert address_text to tokens and their positions
@@ -137,6 +108,42 @@ class AddressParser(object):
                 tokens[key] = len(val)
 
         return tokens
+
+
+class AddressParser(object):
+    @staticmethod
+    def extract_addresses(session, searched_text):
+        names = Name.find_in_text(session, searched_text)
+        if not names:
+            return Counter()
+
+        addresses = set()
+        for n in names:
+            addresses |= set([
+                        addr.get_address_hierarhy(session, raw_address=searched_text) for addr in n.addrobjs
+            ])
+
+        return addresses
+
+    @staticmethod
+    def _dist(address1, address2):
+        """Return distance between addresses
+        """
+        bag1 = address1.bag_of_words()
+        bag2 = address2.bag_of_words()
+
+        # bagX is a Counter; use Counter's arithmetic
+        diff = (bag2 - bag1) + (bag1 - bag2)
+
+        res = [v for (k, v) in diff.iteritems()]
+        return sum(res)
+
+    def parse_address(self, session, searched_text):
+        pattern = Address(full_addr_str=searched_text)
+        addresses = self.extract_addresses(session, searched_text)
+        dists = [(a, self._dist(pattern, a)) for a in addresses]
+
+        return dists
 
 
 placenames_table = Table(
@@ -182,8 +189,7 @@ class Addrobj(Base):
 
     names = relationship('Name', secondary=placenames_table, backref='names')
 
-    def get_admin_order(self):
-        # dbsession = DBSession()
+    def get_admin_order(self, dbsession):
         qs = u'''
             WITH RECURSIVE child_to_parents AS (
               SELECT addrobj.*
@@ -202,15 +208,23 @@ class Addrobj(Base):
         ''' % (self.aoid,)
 
         adm_order = dbsession.query(Addrobj).from_statement(text(qs)).all()
-        # dbsession.close()
 
         return adm_order
 
-    def get_address_hierarhy(self, raw_address=None):
-        adm_order = self.get_admin_order()
+    def get_address_hierarhy(self, session, raw_address=None):
+        adm_order = self.get_admin_order(session)
 
-        address = Address(addrobj=self, raw_address=raw_address)
+        address = Address(addrobj=self,
+                          raw_address=raw_address,
+                          full_addr_str='')
+        full_name = []
         for adm in adm_order:
+            # construct string of all names:
+            full_name.append(adm.shortname)
+            for name in adm.names:
+                full_name.append(name.name)
+
+            # Fill address
             name = "%s %s" % (adm.shortname, adm.formalname)
             if adm.aolevel == 1:
                 address.region = name
@@ -227,6 +241,7 @@ class Addrobj(Base):
             else:
                 raise ValueError("Unknown address level: %s" % (adm.aolevel, ))
 
+        address.full_addr_str = ' '.join(full_name)
         return address
 
 
@@ -240,7 +255,7 @@ class Name(Base):
     addrobjs = relationship('Addrobj', secondary=placenames_table, backref='addrobjs')
 
     @staticmethod
-    def find_in_text(searched_text):
+    def find_in_text(dbsession, searched_text):
         sql = """
         SELECT * FROM name
         WHERE
@@ -249,6 +264,5 @@ class Name(Base):
         names = dbsession.query(Name).from_statement(text(sql)).all()
 
         return names
-
 
 
