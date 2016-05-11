@@ -88,11 +88,16 @@ class Address(BaseAddress):
         return Counter(counts)
 
 class Tokenizer(object):
+    """Object is a wrapper around tokenizer used in Postgres.
+    
+    It is used to be sure that the application and the DB have the same tokenizing procedure.
+    """
     def __init__(self):
         self.bind = Base.metadata.bind
 
     def tokenize(self, address_text, count=False):
-        # Convert address_text to tokens and their positions
+        """Convert address_text to tokens and their positions"""
+        
         sql = """ SELECT to_tsvector('ru', %s)"""
         tsvector = self.bind.execute(sql, address_text)
         tsvector = tsvector.fetchone()[0]
@@ -111,11 +116,17 @@ class Tokenizer(object):
 
 
 class AddressParser(object):
+    """Object to parse address text.
+    """
     
     EPSILON = 0.000001   # A small number
     
     @staticmethod
     def extract_addresses(session, searched_text):
+        """Look at searched_text, try to find address parts in it;
+        return full address hierarchy for every mathcehd word in the text
+        """
+        
         names = Name.find_in_text(session, searched_text)
         if not names:
             return Counter()
@@ -123,7 +134,7 @@ class AddressParser(object):
         addresses = set()
         for n in names:
             addresses |= set([
-                        addr.get_address_hierarhy(session, raw_address=searched_text) for addr in n.addrobjs
+                        addr.get_address_hierarchy(session, raw_address=searched_text) for addr in n.addrobjs
             ])
 
         return addresses
@@ -142,6 +153,10 @@ class AddressParser(object):
         return sum(res)
 
     def parse_address(self, session, searched_text, count=10):
+        """Extract addresses from searched_text;
+        Return list of tuples (Address, silmilarity) sorted by similarity between
+        searched_text and Address.
+        """
         
         if count <= 0:
             raise ValueError('Count of adresses must be positive integer')
@@ -221,7 +236,10 @@ class Addrobj(Base):
 
         return adm_order
 
-    def get_address_hierarhy(self, session, raw_address=None):
+    def get_address_hierarchy(self, session, raw_address=None):
+        """Return hierarchy of addresses:
+        select from DB all parents Addrobjs and convert them into Address object.
+        """
         adm_order = self.get_admin_order(session)
 
         address = Address(addrobj=self,
@@ -266,6 +284,10 @@ class Name(Base):
 
     @staticmethod
     def find_in_text(dbsession, searched_text):
+        """Use Postgres text searching engine to find Names in searhed_text.
+        
+        Return list of Names
+        """
         sql = """
         SELECT * FROM name
         WHERE

@@ -171,10 +171,10 @@ class TestModels(unittest.TestCase):
         self.assertEquals(parents, [])
 
 
-    def test_addrobj_get_address_hierarhy(self):
+    def test_addrobj_get_address_hierarchy(self):
 
         node = self.session.query(Addrobj).filter(Addrobj.aoid == '1').one()
-        adm = node.get_address_hierarhy(self.session)
+        adm = node.get_address_hierarchy(self.session)
         expected = Address(region=u'Oblast Name11')
         self.assertEquals(adm, expected)
         self.assertEquals(adm.addrobj.aoid, '1')
@@ -183,7 +183,7 @@ class TestModels(unittest.TestCase):
                           expected_addr_str)
 
         node = self.session.query(Addrobj).filter(Addrobj.aoid == '2').one()
-        adm = node.get_address_hierarhy(self.session)
+        adm = node.get_address_hierarchy(self.session)
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21')
         self.assertEquals(adm, expected)
         self.assertEquals(adm.addrobj.aoid, '2')
@@ -193,7 +193,7 @@ class TestModels(unittest.TestCase):
 
 
         node = self.session.query(Addrobj).filter(Addrobj.aoid == '6').one()
-        adm = node.get_address_hierarhy(self.session)
+        adm = node.get_address_hierarchy(self.session)
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21',
                            settlement=u'Der. Name61')
         self.assertEquals(adm, expected)
@@ -204,7 +204,7 @@ class TestModels(unittest.TestCase):
 
 
         node = self.session.query(Addrobj).filter(Addrobj.aoid == '9').one()
-        adm = node.get_address_hierarhy(self.session)
+        adm = node.get_address_hierarchy(self.session)
         expected = Address(region=u'Oblast Name11', city=u'Gorod Название31',
                            subcity=u'Kvartal Name81', street=u'Street Название91')
         self.assertEquals(adm, expected)
