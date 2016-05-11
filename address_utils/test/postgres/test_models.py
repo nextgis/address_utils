@@ -373,6 +373,7 @@ class TestModels(unittest.TestCase):
 
     def parser_test_addresparser_parse_addresses(self):
         parser = AddressParser()
+        EPS = parser.EPSILON
         
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
         # The tokens are:
@@ -405,21 +406,39 @@ class TestModels(unittest.TestCase):
         #    oblast 1
         #    название31 1
         
-        expected = set([
+        expected = [
             (Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81',
                 street=u'Street Название91'
-            ), 14),
+            ), 1.0/(14+EPS)),
             (Address(
                 raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31'
-            ), 10)
-        ])
-        self.assertEqual(expected, set(addresses))
+            ), 1.0/(10+EPS))
+        ]
+        self.assertEqual(expected, addresses)
+        
+        
+        addresses = parser.parse_address(self.session, text, count=1)
+        expected = [
+            (Address(
+                raw_address=text,
+                region=u'Oblast Name11',
+                city=u'Gorod Название31',
+                subcity=u'Kvartal Name81',
+                street=u'Street Название91'
+            ), 1.0/(14+EPS)),
+        ]
+        self.assertEqual(expected, addresses)
+        
+        with self.assertRaises(ValueError):
+            addresses = parser.parse_address(self.session, text, count=0)
+        
+        
 
 
     def test_tokenizer_tokenize(self):

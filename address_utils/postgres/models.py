@@ -111,6 +111,9 @@ class Tokenizer(object):
 
 
 class AddressParser(object):
+    
+    EPSILON = 0.000001   # A small number
+    
     @staticmethod
     def extract_addresses(session, searched_text):
         names = Name.find_in_text(session, searched_text)
@@ -138,12 +141,19 @@ class AddressParser(object):
         res = [v for (k, v) in diff.iteritems()]
         return sum(res)
 
-    def parse_address(self, session, searched_text):
+    def parse_address(self, session, searched_text, count=10):
+        
+        if count <= 0:
+            raise ValueError('Count of adresses must be positive integer')
+            
         pattern = Address(full_addr_str=searched_text)
         addresses = self.extract_addresses(session, searched_text)
-        dists = [(a, self._dist(pattern, a)) for a in addresses]
-
-        return dists
+        
+        # Similarity of adresses and the text (sort by similarity): 
+        sims = [(a, 1.0/(self._dist(pattern, a) + self.EPSILON) ) for a in addresses]
+        sims = sorted(sims, key=lambda s: s[1])
+        
+        return sims[:count]
 
 
 placenames_table = Table(
