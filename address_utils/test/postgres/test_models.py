@@ -177,7 +177,6 @@ class TestModels(unittest.TestCase):
         adm = node.get_address_hierarchy(self.session)
         expected = Address(region=u'Oblast Name11')
         self.assertEquals(adm, expected)
-        self.assertEquals(adm.addrobj.aoid, '1')
         expected_addr_str = _sort_addr_str("Oblast Name11 Name12")
         self.assertEquals(_sort_addr_str(adm.full_addr_str),
                           expected_addr_str)
@@ -186,7 +185,6 @@ class TestModels(unittest.TestCase):
         adm = node.get_address_hierarchy(self.session)
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21')
         self.assertEquals(adm, expected)
-        self.assertEquals(adm.addrobj.aoid, '2')
         expected_addr_str = _sort_addr_str("Oblast Name11 Name12 Raion Name21 Name22")
         self.assertEquals(_sort_addr_str(adm.full_addr_str),
                           expected_addr_str)
@@ -197,7 +195,6 @@ class TestModels(unittest.TestCase):
         expected = Address(region=u'Oblast Name11', subregion=u'Raion Name21',
                            settlement=u'Der. Name61')
         self.assertEquals(adm, expected)
-        self.assertEquals(adm.addrobj.aoid, '6')
         expected_addr_str = _sort_addr_str("Oblast Name11 Name12 Raion Name21 Name22 Der. Name61 Name62")
         self.assertEquals(_sort_addr_str(adm.full_addr_str),
                           expected_addr_str)
@@ -208,7 +205,6 @@ class TestModels(unittest.TestCase):
         expected = Address(region=u'Oblast Name11', city=u'Gorod Название31',
                            subcity=u'Kvartal Name81', street=u'Street Название91')
         self.assertEquals(adm, expected)
-        self.assertEquals(adm.addrobj.aoid, '9')
 
         parts = ['region', 'city', 'subcity', 'street']
         for p in parts:
@@ -234,14 +230,12 @@ class TestModels(unittest.TestCase):
         addresses = parser.extract_addresses(self.session, text)
         expected = set([
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81',
                 street=u'Street Название91'
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31'
             )
@@ -256,26 +250,22 @@ class TestModels(unittest.TestCase):
         # N9: (N9, N8, N3, N1): 3
         expected = set([
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81',
                 street=u'Street Название91'
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Name71',
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81'
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11'
             )
         ])
@@ -308,24 +298,21 @@ class TestModels(unittest.TestCase):
         addresses = parser.extract_addresses(self.session, text)
         expected = set([
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31'
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31',
                 street=u'Street Название31'
             ),
-            Address(raw_address=text,
+            Address(
                    region=u'Oblast Name11',
                    city=u'Gorod Название31',
                    subcity=u'Kvartal Name81',
@@ -345,24 +332,21 @@ class TestModels(unittest.TestCase):
         # N9: (N9, N8, N3, N1): 2
         expected = set([
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31'
             ),
             Address(
-                raw_address=text,
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Raion Название31',
                 street=u'Street Название31'
             ),
-            Address(raw_address=text,
+            Address(
                 region=u'Oblast Name11',
                 city=u'Gorod Название31',
                 subcity=u'Kvartal Name81',
@@ -414,14 +398,12 @@ class TestModels(unittest.TestCase):
         expected = [
             (
                 Address(
-                    raw_address=text,
                     region=u'Oblast Name11',
                     city=u'Gorod Название31'
                 ), 
                 10.0),
             (
                 Address(
-                    raw_address=text,
                     region=u'Oblast Name11',
                     city=u'Gorod Название31',
                     subcity=u'Kvartal Name81',
@@ -437,7 +419,6 @@ class TestModels(unittest.TestCase):
         expected = [
             (
                 Address(
-                    raw_address=text,
                     region=u'Oblast Name11',
                     city=u'Gorod Название31'
                 ), 

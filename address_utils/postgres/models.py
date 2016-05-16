@@ -1,10 +1,19 @@
 # coding=utf-8
 
+import cPickle
+
 from collections import Counter
 
-from sqlalchemy import Table, Column, ForeignKey, Integer, Text
-from sqlalchemy import text
+from sqlalchemy import (
+    Table, 
+    Column, 
+    ForeignKey, 
+    Integer, 
+    Text,
+    Binary,
+)
 
+from sqlalchemy import text
 from sqlalchemy import types
 from sqlalchemy import func
 
@@ -47,14 +56,11 @@ class Address(BaseAddress):
                  house=None,
                  poi=None):
 
-        self._addrobj = addrobj
-
         # String of names for all addresses
         self._full_addr_str = full_addr_str
         # Cache for bag of words
         self._bag_of_words = None
 
-        self.tokenizer = Tokenizer()
         super(Address, self).\
             __init__(
                  raw_address,
@@ -70,14 +76,6 @@ class Address(BaseAddress):
                  poi)
 
     @property
-    def addrobj(self):
-        return self._addrobj
-
-    @addrobj.setter
-    def addrobj(self, value):
-        self._addrobj = value
-
-    @property
     def full_addr_str(self):
         return self._full_addr_str
 
@@ -85,15 +83,16 @@ class Address(BaseAddress):
     def full_addr_str(self, value):
         self._full_addr_str = value
 
-    def bag_of_words(self):
+    def bag_of_words(self, tokenizer):
         if self._bag_of_words is None:
-            counts = self.tokenizer.tokenize(self.full_addr_str, count=True)
+            counts = tokenizer.tokenize(self.full_addr_str, count=True)
             self._bag_of_words = Counter(counts)
             
         return self._bag_of_words
         
-    def tokens(self):
-        return set([k for (k, v) in self.bag_of_words().iteritems()])
+    def tokens(self, tokenizer):
+        return set([k for (k, v) in self.bag_of_words(tokenizer).iteritems()])
+
 
 class Tokenizer(object):
     """Object is a wrapper around tokenizer used in Postgres.
@@ -129,6 +128,7 @@ class AddressParser(object):
     
     def __init__(self):
         self.tokens = None
+        self.tokenizer = Tokenizer()
     
     @staticmethod
     def extract_addresses(session, searched_text):
@@ -143,7 +143,7 @@ class AddressParser(object):
         addresses = set()
         for n in names:
             addresses |= set([
-                        addr.get_address_hierarchy(session, raw_address=searched_text) for addr in n.addrobjs
+                        addr.get_address_hierarchy(session) for addr in n.addrobjs
             ])
 
         return addresses
@@ -151,8 +151,8 @@ class AddressParser(object):
     def _dist(self, pattern, address2):
         """Return distance between addresses
         """
-        bag1 = pattern.bag_of_words()
-        bag2 = address2.bag_of_words()
+        bag1 = pattern.bag_of_words(self.tokenizer)
+        bag2 = address2.bag_of_words(self.tokenizer)
         res = sum([abs(bag2[t] - bag1[t]) for t in self.tokens])
         
         return float(res) # /len(self.tokens)
@@ -169,9 +169,9 @@ class AddressParser(object):
         pattern = Address(full_addr_str=searched_text)
         addresses = self.extract_addresses(session, searched_text)
         
-        self.tokens = pattern.tokens()
+        self.tokens = pattern.tokens(self.tokenizer)
         for a in addresses:
-            self.tokens |= a.tokens()
+            self.tokens |= a.tokens(self.tokenizer)
             
         
         # Similarity of adresses and the text (sort by similarity): 
@@ -221,6 +221,7 @@ class Addrobj(Base):
     extrcode = Column(Text)
     sextcode = Column(Text)
     livestatus = Column(Text)
+    pickle = Column(Binary)    # Cache for store Address object
 
     names = relationship('Name', secondary=placenames_table, backref='names')
 
@@ -248,12 +249,22 @@ class Addrobj(Base):
 
     def get_address_hierarchy(self, session, raw_address=None):
         """Return hierarchy of addresses:
-        select from DB all parents Addrobjs and convert them into Address object.
+        select from DB cache of Address object for all parents.
+        """
+        if self.pickle is None:
+            self._create_address_hierarchy(session, raw_address)
+            
+        return cPickle.loads(self.pickle)
+        
+    
+    def _create_address_hierarchy(self, session, raw_address=None):
+        """Create hierarchy of addresses:
+        select from DB all parents Addrobjs and convert them into Address object,
+        then store the Address in cache
         """
         adm_order = self.get_admin_order(session)
 
-        address = Address(addrobj=self,
-                          raw_address=raw_address,
+        address = Address(raw_address=raw_address,
                           full_addr_str='')
         full_name = []
         for adm in adm_order:
@@ -280,7 +291,9 @@ class Addrobj(Base):
                 raise ValueError("Unknown address level: %s" % (adm.aolevel, ))
 
         address.full_addr_str = ' '.join(full_name)
-        return address
+        
+        self.pickle = cPickle.dumps(address)
+        session.commit()
 
 
 class Name(Base):
