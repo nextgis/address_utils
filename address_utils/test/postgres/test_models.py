@@ -227,11 +227,11 @@ class TestModels(unittest.TestCase):
         self.assertTrue(u'Название31' in names)
         self.assertTrue(u'Название92' in names)
 
-    def xtest_addresparser_extract_addresses(self):
+    def test_addresparser_extract_addresses(self):
         parser = AddressParser()
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
         # import ipdb; ipdb.set_trace()
-        addresses = parser.extract_addresses(text)
+        addresses = parser.extract_addresses(self.session, text)
         expected = set([
             Address(
                 raw_address=text,
@@ -249,7 +249,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(expected, addresses)
 
         text = u"""Список названий: Название91 Name81 Name71 Name11, встречающихся в тексте"""
-        addresses = parser.extract_addresses(text)
+        addresses = parser.extract_addresses(self.session, text)
         # N1: (N1): 1
         # N7: (N7, N3, N1): 2
         # N8: (N8, N3, N1):2
@@ -300,12 +300,12 @@ class TestModels(unittest.TestCase):
         self.session.add(node1)
         self.session.commit()
 
-        addresses = parser.extract_addresses(text)
+        addresses = parser.extract_addresses(self.session, text)
         # N3: (N3, N1): 1
         # N3: (N3, N3, N1): 1
         # N3: (N3, N3, N3, N1): 1
         # N9: (N9, N8, N3, N1): 2
-        addresses = parser.extract_addresses(text)
+        addresses = parser.extract_addresses(self.session, text)
         expected = set([
             Address(
                 raw_address=text,
@@ -338,7 +338,7 @@ class TestModels(unittest.TestCase):
 
         text = u"Список названий: Название91 Название31  Название31 Название31"
         # import ipdb; ipdb.set_trace()
-        addresses = parser.extract_addresses(text)
+        addresses = parser.extract_addresses(self.session, text)
         # N3: (N3, N1): 1
         # N3: (N3, N3, N1): 2
         # N3: (N3, N3, N3, N1): 3
@@ -373,7 +373,6 @@ class TestModels(unittest.TestCase):
 
     def parser_test_addresparser_parse_addresses(self):
         parser = AddressParser()
-        EPS = parser.EPSILON
         
         text = u"Is the node with label ''Название92'' a subnode of the node with ''Название31'' ?"
         # The tokens are:
@@ -406,40 +405,50 @@ class TestModels(unittest.TestCase):
         #    oblast 1
         #    название31 1
         
+        tokens = set(['node', u'название92', 'subnod', u'название31', 
+                 'label', 'name11', 'name12', 'name32', 'name82', 'name81',
+                 'kvartal', u'название91', 'oblast', 'gorod',
+                 'street'])
+        self.assertEquals(parser.tokens, tokens)
+        size = len(tokens)
+        
         expected = [
-            (Address(
-                raw_address=text,
-                region=u'Oblast Name11',
-                city=u'Gorod Название31',
-                subcity=u'Kvartal Name81',
-                street=u'Street Название91'
-            ), 1.0/(14+EPS)),
-            (Address(
-                raw_address=text,
-                region=u'Oblast Name11',
-                city=u'Gorod Название31'
-            ), 1.0/(10+EPS))
+            (
+                Address(
+                    raw_address=text,
+                    region=u'Oblast Name11',
+                    city=u'Gorod Название31'
+                ), 
+                10.0/size),
+            (
+                Address(
+                    raw_address=text,
+                    region=u'Oblast Name11',
+                    city=u'Gorod Название31',
+                    subcity=u'Kvartal Name81',
+                    street=u'Street Название91'
+                ), 
+                14.0/size),
         ]
         self.assertEqual(expected, addresses)
         
         
         addresses = parser.parse_address(self.session, text, count=1)
+         
         expected = [
-            (Address(
-                raw_address=text,
-                region=u'Oblast Name11',
-                city=u'Gorod Название31',
-                subcity=u'Kvartal Name81',
-                street=u'Street Название91'
-            ), 1.0/(14+EPS)),
+            (
+                Address(
+                    raw_address=text,
+                    region=u'Oblast Name11',
+                    city=u'Gorod Название31'
+                ), 
+                10.0/size),
         ]
         self.assertEqual(expected, addresses)
         
         with self.assertRaises(ValueError):
             addresses = parser.parse_address(self.session, text, count=0)
         
-        
-
 
     def test_tokenizer_tokenize(self):
         tokenizer = Tokenizer()
@@ -474,12 +483,13 @@ class TestModels(unittest.TestCase):
         tokens = tokenizer.tokenize(test_text, count=True)
         self.assertEqual(tokens, expected)
 
-    def test_addresparser_dist(self):
+    def xtest_addresparser_dist(self):
+        parser = AddressParser()
         text1 = "Название1 Название2 название"
         text2 = "Название1 Название3 название"
         addr1 = Address(full_addr_str=text1)
         addr2 = Address(full_addr_str=text2)
-        diff = AddressParser._dist(addr1, addr2)
+        diff = parser._dist(addr1, addr2)
         expected = 2
         self.assertEquals(diff, expected)
 

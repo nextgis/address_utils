@@ -51,6 +51,8 @@ class Address(BaseAddress):
 
         # String of names for all addresses
         self._full_addr_str = full_addr_str
+        # Cache for bag of words
+        self._bag_of_words = None
 
         self.tokenizer = Tokenizer()
         super(Address, self).\
@@ -84,8 +86,14 @@ class Address(BaseAddress):
         self._full_addr_str = value
 
     def bag_of_words(self):
-        counts = self.tokenizer.tokenize(self.full_addr_str, count=True)
-        return Counter(counts)
+        if self._bag_of_words is None:
+            counts = self.tokenizer.tokenize(self.full_addr_str, count=True)
+            self._bag_of_words = Counter(counts)
+            
+        return self._bag_of_words
+        
+    def tokens(self):
+        return set([k for (k, v) in self.bag_of_words().iteritems()])
 
 class Tokenizer(object):
     """Object is a wrapper around tokenizer used in Postgres.
@@ -119,7 +127,8 @@ class AddressParser(object):
     """Object to parse address text.
     """
     
-    EPSILON = 0.000001   # A small number
+    def __init__(self):
+        self.tokens = None
     
     @staticmethod
     def extract_addresses(session, searched_text):
@@ -139,18 +148,14 @@ class AddressParser(object):
 
         return addresses
 
-    @staticmethod
-    def _dist(address1, address2):
+    def _dist(self, pattern, address2):
         """Return distance between addresses
         """
-        bag1 = address1.bag_of_words()
+        bag1 = pattern.bag_of_words()
         bag2 = address2.bag_of_words()
-
-        # bagX is a Counter; use Counter's arithmetic
-        diff = (bag2 - bag1) + (bag1 - bag2)
-
-        res = [v for (k, v) in diff.iteritems()]
-        return sum(res)
+        res = sum([abs(bag2[t] - bag1[t]) for t in self.tokens])
+        
+        return float(res) # /len(self.tokens)
 
     def parse_address(self, session, searched_text, count=10):
         """Extract addresses from searched_text;
@@ -164,10 +169,15 @@ class AddressParser(object):
         pattern = Address(full_addr_str=searched_text)
         addresses = self.extract_addresses(session, searched_text)
         
-        # Similarity of adresses and the text (sort by similarity): 
-        sims = [(a, 1.0/(self._dist(pattern, a) + self.EPSILON) ) for a in addresses]
-        sims = sorted(sims, key=lambda s: s[1])
+        self.tokens = pattern.tokens()
+        for a in addresses:
+            self.tokens |= a.tokens()
+            
         
+        # Similarity of adresses and the text (sort by similarity): 
+        sims = [(a, self._dist(pattern, a)) for a in addresses]
+        sims = sorted(sims, key=lambda s: s[1])
+         
         return sims[:count]
 
 
