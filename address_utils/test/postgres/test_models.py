@@ -410,7 +410,6 @@ class TestModels(unittest.TestCase):
                  'kvartal', u'название91', 'oblast', 'gorod',
                  'street'])
         self.assertEquals(parser.tokens, tokens)
-        size = len(tokens)
         
         expected = [
             (
@@ -419,7 +418,7 @@ class TestModels(unittest.TestCase):
                     region=u'Oblast Name11',
                     city=u'Gorod Название31'
                 ), 
-                10.0/size),
+                10.0),
             (
                 Address(
                     raw_address=text,
@@ -428,7 +427,7 @@ class TestModels(unittest.TestCase):
                     subcity=u'Kvartal Name81',
                     street=u'Street Название91'
                 ), 
-                14.0/size),
+                14.0),
         ]
         self.assertEqual(expected, addresses)
         
@@ -442,7 +441,7 @@ class TestModels(unittest.TestCase):
                     region=u'Oblast Name11',
                     city=u'Gorod Название31'
                 ), 
-                10.0/size),
+                10.0),
         ]
         self.assertEqual(expected, addresses)
         
