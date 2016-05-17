@@ -463,38 +463,55 @@ class TestModels(unittest.TestCase):
         tokens = tokenizer.tokenize(test_text, count=True)
         self.assertEqual(tokens, expected)
 
-    def xtest_addresparser_dist(self):
+    def test_addressparser_update_tokens(self):
+        parser = AddressParser()
+        text1 = u"Название1 Название2 название"
+        text2 = u"Название1 Название3 название"
+        addr1 = Address(full_addr_str=text1)
+        addr2 = Address(full_addr_str=text2)
+        parser._update_tokens(addr1, [addr2])
+        
+        expected = set([u'назван', u'название1', u'название2']) | set([u'назван', u'название1', u'название3'])
+        self.assertEquals(expected, parser.tokens)
+
+    def test_addresparser_dist(self):
         parser = AddressParser()
         text1 = "Название1 Название2 название"
         text2 = "Название1 Название3 название"
         addr1 = Address(full_addr_str=text1)
         addr2 = Address(full_addr_str=text2)
+        parser._update_tokens(addr1, [addr2])
         diff = parser._dist(addr1, addr2)
         expected = 2
         self.assertEquals(diff, expected)
 
+        parser = AddressParser()
         text1 = "Название1 Название3 название"
         text2 = "Название1 Название3 название"
         addr1 = Address(full_addr_str=text1)
         addr2 = Address(full_addr_str=text2)
-        diff = AddressParser._dist(addr1, addr2)
+        parser._update_tokens(addr1, [addr2])
+        diff = parser._dist(addr1, addr2)
         expected = 0
         self.assertEquals(diff, expected)
 
+        parser = AddressParser()
         text1 = "название4"
         text2 = "Название1 Название3 название"
         addr1 = Address(full_addr_str=text1)
         addr2 = Address(full_addr_str=text2)
-        diff = AddressParser._dist(addr1, addr2)
+        parser._update_tokens(addr1, [addr2])
+        diff = parser._dist(addr1, addr2)
         expected = 4
         self.assertEquals(diff, expected)
 
-
+        parser = AddressParser()
         text1 = ""
         text2 = "Название1 Название3 название"
         addr1 = Address(full_addr_str=text1)
         addr2 = Address(full_addr_str=text2)
-        diff = AddressParser._dist(addr1, addr2)
+        parser._update_tokens(addr1, [addr2])
+        diff = parser._dist(addr1, addr2)
         expected = 3
         self.assertEquals(diff, expected)
 
