@@ -156,7 +156,18 @@ class AddressParser(object):
         res = sum([abs(bag2[t] - bag1[t]) for t in self.tokens])
         
         return float(res) # /len(self.tokens)
-
+        
+    def _update_tokens(self, pattern, addresses):
+        """Exstract tokens from addresses and store them in self.tokens
+        
+        :param pattern:    Address object
+        :param addresses:  List of Address objects
+        """
+        self.tokens = pattern.tokens(self.tokenizer)
+        for a in addresses:
+            self.tokens |= a.tokens(self.tokenizer)
+            
+ 
     def parse_address(self, session, searched_text, count=10):
         """Extract addresses from searched_text;
         Return list of tuples (Address, silmilarity) sorted by similarity between
@@ -169,11 +180,8 @@ class AddressParser(object):
         pattern = Address(full_addr_str=searched_text)
         addresses = self.extract_addresses(session, searched_text)
         
-        self.tokens = pattern.tokens(self.tokenizer)
-        for a in addresses:
-            self.tokens |= a.tokens(self.tokenizer)
-            
-        
+        self._update_tokens(pattern, addresses)
+       
         # Similarity of adresses and the text (sort by similarity): 
         sims = [(a, self._dist(pattern, a)) for a in addresses]
         sims = sorted(sims, key=lambda s: s[1])
@@ -183,8 +191,8 @@ class AddressParser(object):
 
 placenames_table = Table(
     'addr_names', Base.metadata,
-    Column('addrobj_id', Integer, ForeignKey('addrobj.id')),
-    Column('name_id', Integer, ForeignKey('name.id'))
+    Column('addrobj_id', Integer, ForeignKey('addrobj.id'), index=True),
+    Column('name_id', Integer, ForeignKey('name.id'), index=True)
 )
 
 
@@ -253,8 +261,10 @@ class Addrobj(Base):
         """
         if self.pickle is None:
             self._create_address_hierarchy(session, raw_address)
+        
+        address = cPickle.loads(self.pickle)
             
-        return cPickle.loads(self.pickle)
+        return address
         
     
     def _create_address_hierarchy(self, session, raw_address=None):
